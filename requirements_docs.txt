@@ -1,0 +1,3 @@
+Sphinx==1.6.5
+git+https://github.com/akrog/modulefaker.git#egg=modulefaker
+git+https://github.com/akrog/cindermock.git

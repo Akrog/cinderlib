@@ -647,6 +647,7 @@ class Connection(Object):
                 self.connection_info['driver_volume_type'],
                 conn=self.connection_info,
                 **conn)
+        self.attached = bool(self.attach_info)
 
     def _replace_ovo(self, ovo):
         super(Connection, self)._replace_ovo(ovo)
