@@ -148,7 +148,7 @@ control LVM and do the attach) and execute:
     # Export, initialize, and do a local attach of the volume
     attach = vol.attach()
 
-    pp('Volume %s attached to %s' % (vol.id, attach.path)
+    pp('Volume %s attached to %s' % (vol.id, attach.path))
 
     # Snapshot it
     snap = vol.create_snapshot('lvm-snap')
