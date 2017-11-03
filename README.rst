@@ -6,19 +6,12 @@ Cinder Library
 .. image:: https://img.shields.io/pypi/v/cinderlib.svg
    :target: https://pypi.python.org/pypi/cinderlib
 
-.. image:: https://img.shields.io/travis/akrog/cinderlib.svg
-   :target: https://travis-ci.org/akrog/cinderlib
-
 .. image:: https://readthedocs.org/projects/cinderlib/badge/?version=latest
    :target: https://cinderlib.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
 .. image:: https://img.shields.io/pypi/pyversions/cinderlib.svg
    :target: https://pypi.python.org/pypi/cinderlib
-
-.. image:: https://pyup.io/repos/github/akrog/cinderlib/shield.svg
-     :target: https://pyup.io/repos/github/akrog/cinderlib/
-     :alt: Updates
 
 .. image:: https://img.shields.io/:license-apache-blue.svg
    :target: http://www.apache.org/licenses/LICENSE-2.0
