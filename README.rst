@@ -146,6 +146,9 @@ control LVM and do the attach) and execute:
     # Snapshot it
     snap = vol.create_snapshot('lvm-snap')
 
+    # Show the JSON string
+    pp(vol.jsons)
+
     # Save the whole environment to a file
     with open('cinderlib-test.txt', 'w') as f:
         f.write(cl.jsons())
@@ -175,7 +178,7 @@ And now let's run a new `python` interpreter and clean things up:
     vol = list(backends[0].volumes)[0]
     vol.detach()
 
-    # Delete the snapshot and delete it
+    # Get the snapshot and delete it
     snap = list(vol.snapshots)[0]
     snap.delete()
 
