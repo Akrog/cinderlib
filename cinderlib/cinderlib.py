@@ -299,7 +299,9 @@ class Object(object):
         fields_values.update(fields_data)
 
         # We support manually setting the id, so set only if not already set
-        fields_values.setdefault('id', self.new_uuid())
+        # or if set to None
+        if not fields_values.get('id'):
+            fields_values['id'] = self.new_uuid()
 
         # Set non set field values based on OVO's default value and on whether
         # it is nullable or not.
