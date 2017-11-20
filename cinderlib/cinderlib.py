@@ -553,7 +553,7 @@ class Volume(Object):
         if exc and not ignore_errors:
             raise exc
 
-    def connect(self, connector_dict):
+    def connect(self, connector_dict, **ovo_fields):
         if not self.exported:
             model_update = self.backend.driver.create_export(self.context,
                                                              self._ovo,
@@ -563,7 +563,7 @@ class Volume(Object):
             self.exported = True
 
         try:
-            conn = Connection.connect(self, connector_dict)
+            conn = Connection.connect(self, connector_dict, **ovo_fields)
             self.connections.append(conn)
             self._ovo.status = 'in-use'
         except Exception:
@@ -597,7 +597,7 @@ class Connection(Object):
     OVO_CLASS = volume_cmd.objects.VolumeAttachment
 
     @classmethod
-    def connect(cls, volume, connector):
+    def connect(cls, volume, connector, *kwargs):
         conn_info = volume.backend.driver.initialize_connection(
             volume._ovo, connector)
         conn = cls(volume.backend,
@@ -605,7 +605,8 @@ class Connection(Object):
                    volume=volume,
                    status='attached',
                    attach_mode='rw',
-                   connection_info=conn_info)
+                   connection_info=conn_info,
+                   *kwargs)
         volume._ovo.volume_attachment.objects.append(conn._ovo)
         return conn
 
