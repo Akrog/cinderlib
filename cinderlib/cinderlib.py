@@ -624,15 +624,21 @@ class Connection(Object):
         self._populate_data()
 
     def _to_primitive(self):
-        attach_info = self.attach_info.copy()
-        connector = self.attach_info['connector']
-        attach_info['connector'] = {
-            'use_multipath': connector.use_multipath,
-            'device_scan_attempts': connector.device_scan_attempts,
+        result = {
+            'connector': self.connector,
         }
 
-        return {'connector': self.connector,
-                'attach_info': attach_info}
+        if self.attach_info:
+            attach_info = self.attach_info.copy()
+            connector = attach_info['connector']
+            attach_info['connector'] = {
+                'use_multipath': connector.use_multipath,
+                'device_scan_attempts': connector.device_scan_attempts,
+            }
+        else:
+            attach_info = None
+        result['attachment'] = attach_info
+        return result
 
     def _populate_data(self):
         # Ensure circular reference is set
@@ -641,7 +647,7 @@ class Connection(Object):
         data = getattr(self._ovo, 'cinderlib_data', None)
         if data:
             self.connector = data.get('connector', None)
-            self.attach_info = data.get('attach_info', None)
+            self.attach_info = data.get('attachment', None)
         conn = (self.attach_info or {}).get('connector')
         if isinstance(conn, dict):
             self.attach_info['connector'] = utils.brick_get_connector(
