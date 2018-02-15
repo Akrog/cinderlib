@@ -5,6 +5,6 @@ watchdog==0.8.3
 flake8==2.6.0
 tox==2.3.1
 coverage==4.1
-Sphinx==1.4.8
+Sphinx==1.6.5
 mock==2.0.0
 git+https://github.com/openstack/cinder.git@stable/pike

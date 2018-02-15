@@ -57,6 +57,8 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+docs/cinderlib.rst
+docs/modules.rst
 
 # PyBuilder
 target/
