@@ -8,12 +8,9 @@ test_cinderlib
 Tests for `cinderlib` module.
 """
 
-
-import sys
 import unittest
 
 from cinderlib import cinderlib
-
 
 
 class TestCinderlib(unittest.TestCase):
@@ -24,5 +21,5 @@ class TestCinderlib(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_000_something(self):
-        pass
+    def test_lib_setup(self):
+        self.assertEqual(cinderlib.setup, cinderlib.Backend.global_setup)
