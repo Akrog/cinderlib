@@ -25,7 +25,7 @@ import uuid
 from cinder import coordination
 # NOTE(geguileo): If we want to prevent eventlet from monkey_patching we would
 # need to do something about volume's L27-32.
-# NOTE(geguileo): Provably a good idea not to depend on cinder.cmd.volume
+# NOTE(geguileo): Probably a good idea not to depend on cinder.cmd.volume
 # having all the other imports as they could change.
 from cinder.cmd import volume as volume_cmd
 from cinder import context
