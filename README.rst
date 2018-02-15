@@ -1,8 +1,6 @@
 Cinder Library
 ===============================
 
-
-
 .. image:: https://img.shields.io/pypi/v/cinderlib.svg
    :target: https://pypi.python.org/pypi/cinderlib
 
@@ -26,43 +24,13 @@ Cinder.
 * Free software: Apache Software License 2.0
 * Documentation: https://cinderlib.readthedocs.io.
 
-This library is currently at an Alpha status and is primarily intended as a
-proof of concept at this stage.  While some drivers have been manually
-validated most drivers have not, so there's a good chance that they could
-experience issues.
+This library is currently in Alpha stage and is primarily intended as a proof
+of concept at this stage.  While some drivers have been manually validated most
+drivers have not, so there's a good chance that they could experience issues.
 
 When using this library one should be aware that this is in no way close to the
-robustness or feature richness that the Cinder project provides.  Some of the
-more obvious limitations are:
-
-* There are no argument validation on the methods so it's a classic GIGO_
-  library.
-* The logic has been kept to a minimum and higher functioning logic is expected
-  to be in the caller. For example you can delete a volume that still has
-  snapshots, and the end results will depend on the Cinder driver and the
-  storage array, so you will have some that will delete the snapshots and
-  others that will leave them there.
-* There is no CI, or unit tests for that matter, and certainly nothing so fancy
-  as third party vendor CIs, so things being broken could be considered the
-  norm.
-* Only a subset number of basic operations are supported by the library.
-
-The minimum version of Cinder required by this library is Pike; although,
-depending on my my availability, I may make the library support Ocata as well.
-
-Since it's using Cinder's code the library is still bound by the same
-restrictions and behaviors of the drivers running under the standard Cinder
-services, which means that not all operations will behave consistently across
-drivers.  For example you can find drivers where cloning is a cheap operation
-performed by the storage array whereas other will actually create a new volume,
-attach the source and the new volume and perform a full copy of the data.
-
-If a driver in Cinder requires external libraries or packages they will also
-be required by the library and will need to be manually installed.
-
-For more detailed information please refer to the `official project
-documentation`_ and `OpenStack's Cinder volume driver configuration
-documentation`_.
+robustness or feature richness that the Cinder project provides, for detailed
+information on the current limitations please refer to the documentation.
 
 Due to the limited access to Cinder backends and time constraints the list of
 drivers that have been manually tested are (I'll try to test more):
@@ -95,6 +63,17 @@ Features
   - Local attach
   - Local detach
   - Validate connector
+* Code should support multiple concurrent connections to a volume, though this
+  has not yet been tested.
+
+Demo
+----
+
+.. raw:: html
+
+  <a href="https://asciinema.org/a/TcTR7Lu7jI0pEsd9ThEn01l7n?autoplay=1"
+  target="_blank"><img
+  src="https://asciinema.org/a/TcTR7Lu7jI0pEsd9ThEn01l7n.png"/></a>
 
 Example
 -------
@@ -157,7 +136,9 @@ control LVM and do the attach) and execute:
     exit()
 
 Now we can check that the logical volume is there, exported, and attached to
-our system::
+our system:
+
+.. code-block:: shell
 
     # lvdisplay
     # targetcli ls
@@ -185,7 +166,15 @@ And now let's run a new `python` interpreter and clean things up:
     # Finally delete the volume
     vol.delete()
 
+We should confirm that the logical volume is no longer there, there's nothing
+exported or attached to our system:
 
+.. code-block:: shell
+
+    # lvdisplay
+    # targetcli ls
+    # iscsiadm -m session
+    # lsblk
 
 .. _GIGO: https://en.wikipedia.org/wiki/Garbage_in,_garbage_out
 .. _official project documentation: https://readthedocs.org/projects/cinderlib/badge/?version=latest
