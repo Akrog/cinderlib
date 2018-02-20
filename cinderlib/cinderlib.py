@@ -153,7 +153,7 @@ class Backend(object):
         self.driver.validate_connector(connector_dict)
 
     @classmethod
-    def global_setup(cls, file_locks_path=None, disable_sudo=False,
+    def global_setup(cls, file_locks_path=None, root_helper='sudo',
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
                      **log_params):
@@ -172,7 +172,7 @@ class Backend(object):
         OVO._ovo_init(non_uuid_ids)
 
         cls._set_logging(disable_logs, **log_params)
-        cls._set_priv_helper()
+        cls._set_priv_helper(root_helper)
         cls._set_coordinator(file_locks_path)
 
         if suppress_requests_ssl_warnings:
@@ -207,8 +207,7 @@ class Backend(object):
         volume_cmd.python_logging.captureWarnings(True)
 
     @classmethod
-    def _set_priv_helper(cls):
-        root_helper = 'sudo'
+    def _set_priv_helper(cls, root_helper):
         utils.get_root_helper = lambda: root_helper
         volume_cmd.priv_context.init(root_helper=[root_helper])
 

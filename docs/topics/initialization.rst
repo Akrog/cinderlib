@@ -20,7 +20,7 @@ The method definition is as follows:
 .. code-block:: python
 
     @classmethod
-    def global_setup(cls, file_locks_path=None, disable_sudo=False,
+    def global_setup(cls, file_locks_path=None, root_helpers='sudo',
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
                      **log_params):
@@ -50,8 +50,8 @@ uses when not deployed in an Active-Active fashion.
 Parameter defaults to `None`, which will use the current directory to store all
 file locks required by the drivers.
 
-disable_sudo
-------------
+root_helper
+-----------
 
 There are some operations in *Cinder* drivers that require `sudo` privileges,
 this could be because they are running Python code that requires it or because
@@ -60,11 +60,11 @@ they are running a command with `sudo`.
 Attaching and detaching operations with *cinderlib* will also require `sudo`
 privileges.
 
-This configuration option allows us disabling all `sudo` operations when we
-know we don't require them and we are running the process with a non
-passwordless `sudo` user.
+This configuration option allows us to define a custom root helper or disabling
+all `sudo` operations passing an empty string when we know we don't require
+them and we are running the process with a non passwordless `sudo` user.
 
-Defaults to `False`.
+Defaults to `sudo`.
 
 suppress_requests_ssl_warnings
 ------------------------------
