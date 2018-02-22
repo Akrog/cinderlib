@@ -50,11 +50,10 @@ removed in the future and also limits the usefulness of the library to abstract
 Local attach
 ------------
 
-Doing a local attachment with *cinderlib* once we have created a volume is
-really simple, we just have to call the `attach` method from the volume and
+Once we have created a volume with *cinderlib* doing a local attachment is
+really simple, we just have to call the `attach` method from the *Volume* and
 we'll get the *Connection* information from the attached volume, and once we
-are done we call the `detach` method on the *Volume* or on the *Connection*
-information that we got from `attach`.
+are done we call the `detach` method on the *Volume*.
 
 .. code-block:: python
 
@@ -64,8 +63,21 @@ information that we got from `attach`.
         f.write('*' * 100)
     vol.detach()
 
-As mentioned before we could have called `attach.detach()` instead of
-`vol.detach()` and it would have had the same effect.
+This `attach` method will take care of everything, from gathering our local
+connection information, to exporting the volume, initializing the connection,
+and finally doing the local attachment of the volume to our host.
+
+The `detach` operation works in a similar way, but performing the exact
+opposite steps and in reverse.  It will detach the volume from our host,
+terminate the connection, and if there are no more connections to the volume it
+will also remove the export of the volume.
+
+.. attention::
+
+   The *Connection* instance returned by the *Volume* `attach` method also has
+   a `detach` method, but this one behaves differently than the one we've seen
+   in the *Volume*, as it will just perform the local detach step and not the
+   termiante connection or the remove export method.
 
 Remote connection
 -----------------
