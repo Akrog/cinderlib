@@ -79,6 +79,6 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    test_suite='tests',
+    test_suite='unittest2.collector',
     tests_require=test_requirements,
 )

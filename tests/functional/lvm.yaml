@@ -1,0 +1,19 @@
+# For Fedora, CentOS, RHEL we require the targetcli package.
+# For Ubuntu we require lio-utils or changing the target iscsi_helper
+#
+
+# Logs are way too verbose, so we disable them
+logs: false
+
+# LVM backend uses cinder-rtstool command that is installed by Cinder in the
+# virtual environment, so we need the custom sudo command that inherits the
+# virtualenv binaries PATH
+venv_sudo: true
+
+# We only define one backend
+backends:
+    - volume_backend_name: lvm
+      volume_driver: cinder.volume.drivers.lvm.LVMVolumeDriver
+      volume_group: cinder-volumes
+      iscsi_protocol: iscsi
+      iscsi_helper: lioadm

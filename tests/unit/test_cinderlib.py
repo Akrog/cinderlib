@@ -8,12 +8,12 @@ test_cinderlib
 Tests for `cinderlib` module.
 """
 
-import unittest
+import unittest2
 
-from cinderlib import cinderlib
+import cinderlib
 
 
-class TestCinderlib(unittest.TestCase):
+class TestCinderlib(unittest2.TestCase):
 
     def setUp(self):
         pass
