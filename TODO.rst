@@ -10,7 +10,7 @@ list to keep track of the most relevant topics.
 - QoS
 - Support custom features via extra specs
 - Unit tests
-- Integration tests
+- Complete functional tests
 - Parameter validation
 - Support using *cinderlib* without cinder to just handle the attach/detach
 - Add .py examples

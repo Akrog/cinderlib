@@ -27,7 +27,8 @@ a proof of concept and not a finished product at this moment, so please
 carefully go over the limitations section to avoid surprises.
 
 Due to the limited access to Cinder backends and time constraints the list of
-drivers that have been manually tested are:
+drivers that have been manually tested, and using the existing limited
+functional tests, are:
 
 - LVM
 - XtremIO
@@ -79,7 +80,8 @@ more noticeable limitations one should be aware of are:
   to be handled by the caller.
 
 - There is no CI, or unit tests for that matter, and certainly nothing so fancy
-  as third party vendor CIs, so things could be broken at any point.
+  as third party vendor CIs, so things could be broken at any point.  We only
+  have some automated, yet limited, functional tests.
 
 - Only a subset of Cinder available operations are supported by the library.
 

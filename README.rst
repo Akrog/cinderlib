@@ -81,16 +81,18 @@ Example
 The following example uses CentOS 7 and the Cinder LVM driver, which should be
 the easiest to setup and test.
 
-First you need to setup your system::
+First you need to setup your system:
 
-    # yum install -y centos-release-openstack-pike
-    # yum install -y openstack-cinder targetcli python-pip
-    # pip install cinderlib
-    # dd if=/dev/zero of=cinder-volumes bs=1048576 seek=22527 count=1
-    # lodevice=`losetup --show -f ./cinder-volumes`
-    # pvcreate $lodevice
-    # vgcreate cinder-volumes $lodevice
-    # vgscan --cache
+.. code-block:: shell
+
+    $ sudo yum install -y centos-release-openstack-pike
+    $ sudo yum install -y openstack-cinder targetcli python-pip
+    $ sudo pip install cinderlib
+    $ sudo dd if=/dev/zero of=cinder-volumes bs=1048576 seek=22527 count=1
+    $ sudo lodevice=`losetup --show -f ./cinder-volumes`
+    $ sudo pvcreate $lodevice
+    $ sudo vgcreate cinder-volumes $lodevice
+    $ sudo vgscan --cache
 
 Then you need to run `python`  with a passwordless sudo user (required to
 control LVM and do the attach) and execute:

@@ -26,6 +26,7 @@ able to manage your storage.
    installation
    usage
    contributing
+   validating_backends
    internals
    authors
    todo

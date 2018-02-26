@@ -65,3 +65,6 @@ target/
 
 # pyenv python configuration file
 .python-version
+
+# Temp directory, for example for the LVM file, our custom config, etc.
+temp/
