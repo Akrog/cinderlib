@@ -23,7 +23,7 @@ The method definition is as follows:
     def global_setup(cls, file_locks_path=None, root_helpers='sudo',
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
-                     **log_params):
+                     project_id=None, user_id=None, **log_params):
 
 
 The meaning of the library's configuration options are:
@@ -101,6 +101,26 @@ be quite verbose in terms of logging, that's why *cinderlib* disables it by
 default.
 
 Defaults to `True`.
+
+project_id
+----------
+
+*Cinder* is a multi-tenant service, and when resources are created they belong
+to a specific tenant/project.  With this parameter we can define, using a
+string, an identifier for our project that will be assigned to the resources we
+create.
+
+Defaults to `cinderlib`.
+
+user_id
+-------
+
+Within each project/tenant the *Cinder* project supports multiple users, so
+when it creates a resource a reference to the user that created it is stored
+in the resource.  Using this this parameter we can define, using a string, an
+identifier for the user of cinderlib to be recorded in the resources.
+
+Defaults to `cinderlib`.
 
 other keyword arguments
 -----------------------

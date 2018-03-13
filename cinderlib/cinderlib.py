@@ -41,10 +41,29 @@ import six
 
 
 __all__ = ['setup', 'load', 'json', 'jsons', 'Backend', 'Volume', 'Snapshot',
-           'Connection']
+           'Connection', 'DEFAULT_PROJECT_ID', 'DEFAULT_USER_ID']
+
+
+DEFAULT_PROJECT_ID = 'cinderlib'
+DEFAULT_USER_ID = 'cinderlib'
+CONTEXT = context.RequestContext(user_id=DEFAULT_USER_ID,
+                                 project_id=DEFAULT_PROJECT_ID,
+                                 is_admin=True,
+                                 overwrite=False)
 
 
 volume_cmd.objects.register_all()
+
+
+def set_context(project_id=None, user_id=None):
+    global CONTEXT
+    project_id = project_id or DEFAULT_PROJECT_ID
+    user_id = user_id or DEFAULT_USER_ID
+    if project_id != CONTEXT.project_id or user_id != CONTEXT.user_id:
+        CONTEXT.user_id = user_id
+        CONTEXT.project_id = project_id
+        Volume.DEFAULT_FIELDS_VALUES['user_id'] = user_id
+        Volume.DEFAULT_FIELDS_VALUES['project_id'] = project_id
 
 
 class Backend(object):
@@ -63,7 +82,6 @@ class Backend(object):
     """
     backends = {}
     global_initialization = False
-    context = context.get_admin_context()
 
     def __init__(self, volume_backend_name, **driver_cfg):
         if not self.global_initialization:
@@ -79,7 +97,7 @@ class Backend(object):
             host=volume_cmd.CONF.host,
             cluster_name=None,  # No clusters for now: volume_cmd.CONF.cluster,
             active_backend_id=None)  # No failover for now
-        self.driver.do_setup(self.context)
+        self.driver.do_setup(CONTEXT)
         self.driver.check_for_setup_error()
         self.driver.init_capabilities()
         self.driver.set_throttle()
@@ -156,10 +174,12 @@ class Backend(object):
     def global_setup(cls, file_locks_path=None, root_helper='sudo',
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
-                     **log_params):
+                     project_id=None, user_id=None, **log_params):
         # Global setup can only be set once
         if cls.global_initialization:
             raise Exception('Already setup')
+
+        set_context(project_id, user_id)
 
         # Prevent driver dynamic loading clearing configuration options
         volume_cmd.CONF._ConfigOpts__cache = MyDict()
@@ -271,7 +291,6 @@ class Object(object):
     """Base class for our resource representation objects."""
     DEFAULT_FIELDS_VALUES = {}
     objects = collections.defaultdict(dict)
-    context = context.get_admin_context()
 
     def __init__(self, backend, **fields_data):
         self.backend = backend
@@ -310,7 +329,7 @@ class Object(object):
             elif field.nullable:
                 fields_values.setdefault(field_name, None)
 
-        return self.OVO_CLASS(context=self.context, **fields_values)
+        return self.OVO_CLASS(context=CONTEXT, **fields_values)
 
     @property
     def json(self):
@@ -342,7 +361,7 @@ class Object(object):
             backend = Backend(**json_src['backend'])
 
         ovo = cinder_base_ovo.CinderObject.obj_from_primitive(json_src['ovo'],
-                                                              cls.context)
+                                                              CONTEXT)
         return cls._load(backend, ovo)
 
     def _replace_ovo(self, ovo):
@@ -362,8 +381,8 @@ class Volume(Object):
     OVO_CLASS = volume_cmd.objects.Volume
     DEFAULT_FIELDS_VALUES = {
         'size': 1,
-        'user_id': Object.context.user_id,
-        'project_id': Object.context.project_id,
+        'user_id': CONTEXT.user_id,
+        'project_id': CONTEXT.project_id,
         'host': volume_cmd.CONF.host,
         'status': 'creating',
         'attach_status': 'detached',
@@ -390,10 +409,10 @@ class Volume(Object):
                 kwargs['display_name'] = kwargs.pop('name')
             kwargs.setdefault(
                 'volume_attachment',
-                volume_cmd.objects.VolumeAttachmentList(context=self.context))
+                volume_cmd.objects.VolumeAttachmentList(context=CONTEXT))
             kwargs.setdefault(
                 'snapshots',
-                volume_cmd.objects.SnapshotList(context=self.context))
+                volume_cmd.objects.SnapshotList(context=CONTEXT))
 
         super(Volume, self).__init__(backend_or_vol, **kwargs)
         self.snapshots = set()
@@ -556,7 +575,7 @@ class Volume(Object):
 
     def connect(self, connector_dict, **ovo_fields):
         if not self.exported:
-            model_update = self.backend.driver.create_export(self.context,
+            model_update = self.backend.driver.create_export(CONTEXT,
                                                              self._ovo,
                                                              connector_dict)
             if model_update:
