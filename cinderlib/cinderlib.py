@@ -964,6 +964,10 @@ class DB(object):
             raise exception.SnapshotNotFound(snapshot_id=snapshot_id)
         return Snapshot.objects[snapshot_id]._ovo
 
+    @classmethod
+    def image_volume_cache_get_by_volume_id(cls, context, volume_id):
+        return None
+
 
 class MyDict(dict):
     """Custom non clearable dictionary.
