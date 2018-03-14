@@ -132,45 +132,63 @@ the location of our configuration file via environmental variable
 
    $ CL_FTEST_CFG=temp/tests.yaml tox -efunctional
 
+   functional develop-inst-nodeps: /home/geguileo/code/cinderlib
+   functional installed: You are using pip version 8.1.2, ...
+   functional runtests: PYTHONHASHSEED='2093635202'
+   functional runtests: commands[0] | unit2 discover -v -s tests/functional
    test_attach_detach_volume_on_kaminario (tests_basic.BackendFunctBasic) ... ok
    test_attach_detach_volume_on_lvm (tests_basic.BackendFunctBasic) ... ok
    test_attach_detach_volume_on_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_stats_on_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_stats_on_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_stats_on_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_create_volume_on_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_create_volume_on_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_create_volume_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_attach_detach_volume_via_attachment_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_attach_detach_volume_via_attachment_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_attach_detach_volume_via_attachment_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_attach_volume_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_attach_volume_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_attach_volume_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_clone_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_clone_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_clone_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_connect_disconnect_multiple_times_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_connect_disconnect_multiple_times_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_connect_disconnect_multiple_times_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_connect_disconnect_multiple_volumes_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_connect_disconnect_multiple_volumes_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_connect_disconnect_multiple_volumes_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_connect_disconnect_volume_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_connect_disconnect_volume_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_connect_disconnect_volume_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_create_delete_snapshot_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_create_delete_snapshot_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_create_delete_snapshot_on_xtremio (tests_basic.BackendFunctBasic) ... ok
    test_create_delete_volume_on_kaminario (tests_basic.BackendFunctBasic) ... ok
    test_create_delete_volume_on_lvm (tests_basic.BackendFunctBasic) ... ok
    test_create_delete_volume_on_xtremio (tests_basic.BackendFunctBasic) ... ok
    test_create_snapshot_on_kaminario (tests_basic.BackendFunctBasic) ... ok
    test_create_snapshot_on_lvm (tests_basic.BackendFunctBasic) ... ok
    test_create_snapshot_on_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_create_delete_snapshot_on_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_create_delete_snapshot_on_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_create_delete_snapshot_on_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_attach_volume_on_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_attach_volume_on_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_attach_volume_on_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_attach_detach_volume_via_attachment_on_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_attach_detach_volume_via_attachment_on_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_attach_detach_volume_via_attachment_on_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_disk_io_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_disk_io_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_disk_io_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_connect_disconnect_volume_on_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_connect_disconnect_volume_on_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_connect_disconnect_volume_on_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_connect_disconnect_multiple_volumes_on_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_connect_disconnect_multiple_volumes_on_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_connect_disconnect_multiple_volumes_on_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_connect_disconnect_multiple_times_on_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_connect_disconnect_multiple_times_on_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_connect_disconnect_multiple_times_on_xtremio (tests_basic.BackendFunctBasic) ... ok
-   test_stats_with_cretion_on_kaminario (tests_basic.BackendFunctBasic) ... ok
-   test_stats_with_cretion_on_lvm (tests_basic.BackendFunctBasic) ... ok
-   test_stats_with_cretion_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_create_volume_from_snapshot_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_create_volume_from_snapshot_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_create_volume_from_snapshot_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_create_volume_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_create_volume_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_create_volume_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_disk_io_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_disk_io_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_disk_io_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_extend_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_extend_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_extend_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_stats_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_stats_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_stats_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+   test_stats_with_creation_on_kaminario (tests_basic.BackendFunctBasic) ... ok
+   test_stats_with_creation_on_lvm (tests_basic.BackendFunctBasic) ... ok
+   test_stats_with_creation_on_xtremio (tests_basic.BackendFunctBasic) ... ok
+
+   ----------------------------------------------------------------------
+   Ran 48 tests in x.ys
+
+   OK
 
 As can be seen each test will have a meaningful name ending in the name of the
 backend we have provided via the `volume_backend_name` key in the YAML file.

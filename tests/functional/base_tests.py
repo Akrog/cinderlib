@@ -13,9 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import json
 import functools
 import os
 import subprocess
+import tempfile
 
 import unittest2
 import yaml
@@ -156,3 +158,61 @@ class BaseFunctTestCase(unittest2.TestCase):
 
         self.assertIn(snap, vol.snapshots)
         return snap
+
+    def _get_vol_size(self, vol, do_detach=True):
+        if not vol.local_attach:
+            vol.attach()
+
+        try:
+            while True:
+                try:
+                    result = self._root_execute('lsblk', '-o', 'SIZE', '-J',
+                                                '-b', vol.local_attach.path)
+                    data = json.loads(result)
+                    size_bytes = data['blockdevices'][0]['size']
+                    return float(size_bytes) / 1024.0 / 1024.0 / 1024.0
+                # NOTE(geguileo): We can't catch subprocess.CalledProcessError
+                # because somehow we get an instance from a different
+                # subprocess.CalledProcessError class that isn't the same.
+                except Exception as exc:
+                    # If the volume is not yet available
+                    if getattr(exc, 'returncode', 0) != 32:
+                        raise
+        finally:
+            if do_detach:
+                vol.detach()
+
+    def _write_data(self, vol, data=None, do_detach=True):
+        if not data:
+            data = '0123456789' * 100
+
+        if not vol.local_attach:
+            vol.attach()
+
+        # TODO(geguileo: This will not work on Windows, for that we need to
+        # pass delete=False and do the manual deletion ourselves.
+        try:
+            with tempfile.NamedTemporaryFile() as f:
+                f.write(data)
+                f.flush()
+                self._root_execute('dd', 'if=' + f.name,
+                                   of=vol.local_attach.path)
+        finally:
+            if do_detach:
+                vol.detach()
+
+        return data
+
+    def _read_data(self, vol, length, do_detach=True):
+        if not vol.local_attach:
+            vol.attach()
+        try:
+            stdout = self._root_execute('dd', 'if=' + vol.local_attach.path,
+                                        count=1, ibs=length)
+        finally:
+            if do_detach:
+                vol.detach()
+        return stdout
+
+    def _pools_info(self, stats):
+        return stats.get('pools', [stats])

@@ -14,7 +14,6 @@
 #    under the License.
 
 import os
-import tempfile
 
 import base_tests
 
@@ -26,13 +25,40 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
         stats = self.backend.stats()
         self.assertIn('vendor_name', stats)
         self.assertIn('volume_backend_name', stats)
-        pools_info = stats.get('pools', [stats])
+        pools_info = self._pools_info(stats)
         for pool_info in pools_info:
             self.assertIn('free_capacity_gb', pool_info)
             self.assertIn('total_capacity_gb', pool_info)
 
+    def test_stats_with_creation(self):
+        # This test can fail if we are don't have exclusive usage of the
+        # storage pool used in the tests or if the specific driver does not
+        # return the right values in allocated_capacity_gb or
+        # provisioned_capacity_gb.
+        initial_stats = self.backend.stats(refresh=True)
+        vol = self._create_vol(self.backend)
+        new_stats = self.backend.stats(refresh=True)
+
+        initial_pools_info = self._pools_info(initial_stats)
+        new_pools_info = self._pools_info(new_stats)
+
+        initial_volumes = sum(p.get('total_volumes', 0)
+                              for p in initial_pools_info)
+        new_volumes = sum(p.get('total_volumes', 1) for p in new_pools_info)
+        self.assertEqual(initial_volumes + 1, new_volumes)
+
+        initial_size = sum(p.get('allocated_capacity_gb',
+                                 p.get('provisioned_capacity_gb', 0))
+                           for p in initial_pools_info)
+        new_size = sum(p.get('allocated_capacity_gb',
+                             p.get('provisioned_capacity_gb', vol.size))
+                       for p in new_pools_info)
+        self.assertEqual(initial_size + vol.size, new_size)
+
     def test_create_volume(self):
-        self._create_vol(self.backend)
+        vol = self._create_vol(self.backend)
+        vol_size = self._get_vol_size(vol)
+        self.assertEqual(vol.size, vol_size)
         # We are not testing delete, so leave the deletion to the tearDown
 
     def test_create_delete_volume(self):
@@ -114,29 +140,61 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
         self.assertNotIn(attach, vol.connections)
 
     def test_disk_io(self):
-        data = '0123456789' * 100
-
         vol = self._create_vol(self.backend)
+        data = self._write_data(vol)
 
-        attach = vol.attach()
+        read_data = self._read_data(vol, len(data))
 
-        # TODO(geguileo: This will not work on Windows, for that we need to
-        # pass delete=False and do the manual deletion ourselves.
-        with tempfile.NamedTemporaryFile() as f:
-            f.write(data)
-            f.flush()
-            self._root_execute('dd', 'if=' + f.name, of=attach.path)
+        self.assertEqual(data, read_data)
 
-        # Detach without removing the mapping of the volume since it's faster
-        attach.detach()
+    def test_extend(self):
+        vol = self._create_vol(self.backend)
+        original_size = vol.size
+        result_original_size = self._get_vol_size(vol)
+        self.assertEqual(original_size, result_original_size)
 
-        # Reattach, using old mapping, to validate data is there
-        attach.attach()
-        stdout = self._root_execute('dd', 'if=' + attach.path, count=1,
-                                    ibs=len(data))
+        new_size = vol.size + 1
+        vol.extend(new_size)
 
-        self.assertEqual(data, stdout)
-        vol.detach()
+        self.assertEqual(new_size, vol.size)
+        result_new_size = self._get_vol_size(vol)
+        self.assertEqual(new_size, result_new_size)
+
+    def test_clone(self):
+        vol = self._create_vol(self.backend)
+        original_size = self._get_vol_size(vol, do_detach=False)
+        data = self._write_data(vol)
+
+        new_vol = vol.clone()
+        self.assertEqual(vol.size, new_vol.size)
+
+        cloned_size = self._get_vol_size(new_vol, do_detach=False)
+        read_data = self._read_data(new_vol, len(data))
+        self.assertEqual(original_size, cloned_size)
+        self.assertEqual(data, read_data)
+
+    def test_create_volume_from_snapshot(self):
+        # Create a volume and write some data
+        vol = self._create_vol(self.backend)
+        original_size = self._get_vol_size(vol, do_detach=False)
+        data = self._write_data(vol)
+
+        # Take a snapshot
+        snap = vol.create_snapshot()
+        self.assertEqual(vol.size, snap.volume_size)
+
+        # Change the data in the volume
+        reversed_data = data[::-1]
+        self._write_data(vol, data=reversed_data)
+
+        # Create a new volume from the snapshot with the original data
+        new_vol = snap.create_volume()
+        self.assertEqual(vol.size, new_vol.size)
+
+        created_size = self._get_vol_size(new_vol, do_detach=False)
+        read_data = self._read_data(new_vol, len(data))
+        self.assertEqual(original_size, created_size)
+        self.assertEqual(data, read_data)
 
     def test_connect_disconnect_volume(self):
         # TODO(geguileo): Implement the test
@@ -147,9 +205,5 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
         pass
 
     def test_connect_disconnect_multiple_times(self):
-        # TODO(geguileo): Implement the test
-        pass
-
-    def test_stats_with_creation(self):
         # TODO(geguileo): Implement the test
         pass
