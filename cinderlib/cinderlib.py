@@ -372,7 +372,7 @@ class Volume(Object):
         'glance_metadata': {},
     }
 
-    _ignore_keys = ('id', 'volume_attachment' 'snapshots')
+    _ignore_keys = ('id', 'volume_attachment', 'snapshots')
 
     def __init__(self, backend_or_vol, **kwargs):
         # Accept a volume as additional source data
