@@ -152,15 +152,17 @@ Additional information can be found in the `Volume Stats section
 <https://docs.openstack.org/cinder/pike/contributor/drivers.html#volume-stats>`_
 within the Developer's Documentation.
 
-Gathering stats is a costly operation for many storage backends, so we have the
-possibility of retrieving the cached value that was retrieved the last time.
+Gathering stats is a costly operation for many storage backends, so by default
+the stats method will return cached values instead of collecting them again.
+If latest data is required parameter `refresh=True` should be passed in the
+`stats` method call.
 
-Here's an example of the output from the LVM *Backend*:
+Here's an example of the output from the LVM *Backend* with refresh:
 
 .. code-block:: python
 
     >>> from pprint import pprint
-    >>> pprint(lvm.stats())
+    >>> pprint(lvm.stats(refresh=True))
     {'driver_version': '3.0.0',
      'pools': [{'QoS_support': False,
                 'filter_function': None,
