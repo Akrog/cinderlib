@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
+import setuptools
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -47,7 +47,7 @@ extras = {
                   'infi.dtypes.iqn'],
 }
 
-setup(
+setuptools.setup(
     name='cinderlib',
     version='0.1.0',
     description=("Cinder Library allows using storage drivers outside of "
@@ -56,11 +56,7 @@ setup(
     author="Gorka Eguileor",
     author_email='geguileo@redhat.com',
     url='https://github.com/akrog/cinderlib',
-    packages=[
-        'cinderlib',
-    ],
-    package_dir={'cinderlib':
-                 'cinderlib'},
+    packages=setuptools.find_packages(exclude=['tmp', 'tests.*', 'tests.*']),
     include_package_data=True,
     install_requires=requirements,
     extras_requires=extras,
@@ -81,4 +77,9 @@ setup(
     ],
     test_suite='unittest2.collector',
     tests_require=test_requirements,
+    entry_points={
+        'cinderlib.persistence.storage': [
+            'memory = cinderlib.persistence.memory:MemoryPersistence',
+        ],
+    },
 )

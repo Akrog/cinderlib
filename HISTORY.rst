@@ -10,6 +10,7 @@ History
   - Modify fields on connect method.
   - Support setting custom root_helper.
   - Setting default project_id and user_id.
+  - Persistence plugin mechanism
 
 - Bug fixes:
 
