@@ -155,7 +155,28 @@ class Object(object):
         return getattr(self._ovo, name)
 
 
-class Volume(Object):
+class NamedObject(Object):
+    def __init__(self, backend, **fields_data):
+        if 'description' in fields_data:
+            fields_data['display_description'] = fields_data.pop('description')
+        if 'name' in fields_data:
+            fields_data['display_name'] = fields_data.pop('name')
+        super(NamedObject, self).__init__(backend, **fields_data)
+
+    @property
+    def name(self):
+        return self._ovo.display_name
+
+    @property
+    def description(self):
+        return self._ovo.display_description
+
+    @property
+    def name_in_storage(self):
+        return self._ovo.name
+
+
+class Volume(NamedObject):
     OVO_CLASS = volume_cmd.objects.Volume
     DEFAULT_FIELDS_VALUES = {
         'size': 1,
@@ -183,10 +204,6 @@ class Volume(Object):
             backend_or_vol = backend_or_vol.backend
 
         if '__ovo' not in kwargs:
-            if 'description' in kwargs:
-                kwargs['display_description'] = kwargs.pop('description')
-            if 'name' in kwargs:
-                kwargs['display_name'] = kwargs.pop('name')
             kwargs.setdefault(
                 'volume_attachment',
                 volume_cmd.objects.VolumeAttachmentList(context=self.CONTEXT))
@@ -539,7 +556,7 @@ class Connection(Object):
         return result[0]
 
 
-class Snapshot(Object):
+class Snapshot(NamedObject):
     OVO_CLASS = volume_cmd.objects.Snapshot
     DEFAULT_FIELDS_VALUES = {
         'status': 'creating',
@@ -558,11 +575,6 @@ class Snapshot(Object):
             kwargs['volume_size'] = volume.size
             kwargs['volume_type_id'] = volume.volume_type_id
             kwargs['volume'] = volume._ovo
-
-            if 'description' in kwargs:
-                kwargs['display_description'] = kwargs.pop('description')
-            if 'name' in kwargs:
-                kwargs['display_name'] = kwargs.pop('name')
 
         super(Snapshot, self).__init__(volume.backend, **kwargs)
 

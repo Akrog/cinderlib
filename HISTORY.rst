@@ -20,6 +20,7 @@ History
   - Fix volume cloning on XtremIO
   - Fix iSCSI detach issue related to privsep
   - Fix wrong size in volume from snapshot
+  - Fix name & description inconsistency
 
 0.1.0 (2017-11-03)
 ------------------
