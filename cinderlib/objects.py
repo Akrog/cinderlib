@@ -612,6 +612,7 @@ class Snapshot(Object):
             pass
 
     def create_volume(self, **new_vol_params):
+        new_vol_params.setdefault('size', self.volume_size)
         new_vol_params['snapshot_id'] = self.id
         new_vol = Volume(self.volume, **new_vol_params)
         try:

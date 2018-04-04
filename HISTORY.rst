@@ -19,6 +19,7 @@ History
   - Disabling of sudo command wasn't working.
   - Fix volume cloning on XtremIO
   - Fix iSCSI detach issue related to privsep
+  - Fix wrong size in volume from snapshot
 
 0.1.0 (2017-11-03)
 ------------------
