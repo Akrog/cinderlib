@@ -200,10 +200,12 @@ class Volume(NamedObject):
     def __init__(self, backend_or_vol, **kwargs):
         # Accept backend name for convenience
         if isinstance(backend_or_vol, six.string_types):
+            kwargs.setdefault('availability_zone', backend_or_vol)
             backend_or_vol = self.backend_class.backends[backend_or_vol]
-
+        elif isinstance(backend_or_vol, self.backend_class):
+            kwargs.setdefault('availability_zone', backend_or_vol.id)
         # Accept a volume as additional source data
-        if isinstance(backend_or_vol, Volume):
+        elif isinstance(backend_or_vol, Volume):
             # Availability zone (backend) will be the same as the source
             kwargs.pop('availability_zone', None)
             for key in backend_or_vol._ovo.fields:

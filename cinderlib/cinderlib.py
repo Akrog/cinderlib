@@ -103,7 +103,7 @@ class Backend(object):
                       **kwargs):
         vol = objects.Volume(self, size=size, name=name,
                              description=description, bootable=bootable,
-                             availability_zone=self.id, **kwargs)
+                             **kwargs)
         vol.create()
         return vol
 
