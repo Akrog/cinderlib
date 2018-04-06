@@ -218,8 +218,7 @@ class Volume(NamedObject):
 
     def _to_primitive(self):
         local_attach = self.local_attach.id if self.local_attach else None
-        return {'local_attach': local_attach,
-                'exported': self.exported}
+        return {'local_attach': local_attach}
 
     @classmethod
     def get_by_id(cls, volume_id):
@@ -284,7 +283,6 @@ class Volume(NamedObject):
             # del Object.objects['Connection'][conn_id]
 
         data = getattr(self._ovo, 'cinderlib_data', {})
-        self.exported = data.get('exported', False)
         self.local_attach = data.get('local_attach', None)
         if self.local_attach:
             self.local_attach = Object.objects['Connection'][self.local_attach]
@@ -385,14 +383,12 @@ class Volume(NamedObject):
             raise exc
 
     def connect(self, connector_dict, **ovo_fields):
-        if not self.exported:
-            model_update = self.backend.driver.create_export(self.CONTEXT,
-                                                             self._ovo,
-                                                             connector_dict)
-            if model_update:
-                self._ovo.update(model_update)
-                self.persistence.set_volume(self)
-            self.exported = True
+        model_update = self.backend.driver.create_export(self.CONTEXT,
+                                                         self._ovo,
+                                                         connector_dict)
+        if model_update:
+            self._ovo.update(model_update)
+            self.persistence.set_volume(self)
 
         try:
             conn = Connection.connect(self, connector_dict, **ovo_fields)
@@ -400,17 +396,15 @@ class Volume(NamedObject):
             self._ovo.status = 'in-use'
             self.persistence.set_volume(self)
         except Exception:
-            if not self.connections:
-                self._remove_export()
+            self._remove_export()
             # TODO: Improve raised exception
             raise
         return conn
 
     def _disconnect(self, connection):
         self.connections.remove(connection)
-        if not self.connections:
-            self._remove_export()
-            self._ovo.status = 'available'
+        self._remove_export()
+        self._ovo.status = 'available'
 
     def disconnect(self, connection, force=False):
         connection._disconnect(force)
@@ -423,7 +417,6 @@ class Volume(NamedObject):
 
     def _remove_export(self):
         self.backend.driver.remove_export(self._context, self._ovo)
-        self.exported = False
 
 
 class Connection(Object):
