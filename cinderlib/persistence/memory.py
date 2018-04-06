@@ -36,23 +36,33 @@ class MemoryPersistence(persistence_base.PersistenceDriverBase):
         return [res for res in values if getattr(res, field) == value]
 
     def get_volumes(self, volume_id=None, volume_name=None, backend_name=None):
-        res = [self.volumes[volume_id]] if volume_id else self.volumes.values()
+        try:
+            res = ([self.volumes[volume_id]] if volume_id
+                   else self.volumes.values())
+        except KeyError:
+            return []
         res = self._filter_by(res, 'display_name', volume_name)
         res = self._filter_by(res, 'availability_zone', backend_name)
         return res
 
     def get_snapshots(self, snapshot_id=None, snapshot_name=None,
                       volume_id=None):
-        result = ([self.snapshots[snapshot_id]] if snapshot_id
-                  else self.snapshots.values())
+        try:
+            result = ([self.snapshots[snapshot_id]] if snapshot_id
+                      else self.snapshots.values())
+        except KeyError:
+            return []
 
         result = self._filter_by(result, 'volume_id', volume_id)
         result = self._filter_by(result, 'display_name', snapshot_name)
         return result
 
     def get_connections(self, connection_id=None, volume_id=None):
-        result = ([self.connections[connection_id]] if connection_id
-                  else self.connections.values())
+        try:
+            result = ([self.connections[connection_id]] if connection_id
+                      else self.connections.values())
+        except KeyError:
+            return []
         result = self._filter_by(result, 'volume_id', volume_id)
         return result
 
