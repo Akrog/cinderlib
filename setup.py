@@ -80,6 +80,8 @@ setuptools.setup(
     entry_points={
         'cinderlib.persistence.storage': [
             'memory = cinderlib.persistence.memory:MemoryPersistence',
+            'db = cinderlib.persistence.dbms:DBPersistence',
+            'memory_db = cinderlib.persistence.dbms:MemoryDBPersistence',
         ],
     },
 )

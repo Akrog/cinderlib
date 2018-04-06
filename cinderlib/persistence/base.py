@@ -18,6 +18,7 @@
 from cinder.cmd import volume as volume_cmd
 from cinder.objects import base as cinder_base_ovo
 from oslo_utils import timeutils
+from oslo_versionedobjects import fields
 import six
 
 
@@ -75,7 +76,13 @@ class PersistenceDriverBase(object):
         resource._ovo.obj_reset_changes(fields)
 
     def get_changed_fields(self, resource):
-        return resource._ovo.cinder_obj_get_changes()
+        # NOTE(geguileo): We don't use cinder_obj_get_changes to prevent
+        # recursion to children OVO which we are not interested and may result
+        # in circular references.
+        result = {key: getattr(resource._ovo, key)
+                  for key in resource._changed_fields
+                  if not isinstance(resource.fields[key], fields.ObjectField)}
+        return result
 
 
 class DB(object):
@@ -108,10 +115,10 @@ class DB(object):
             ovo_cls.save = lambda *args, **kwargs: None
 
     def volume_get(self, context, volume_id, *args, **kwargs):
-        return self.persistence.get_volumes(volume_id)._ovo
+        return self.persistence.get_volumes(volume_id)[0]._ovo
 
     def snapshot_get(self, context, snapshot_id, *args, **kwargs):
-        return self.persistence.get_snapshots(snapshot_id)._ovo
+        return self.persistence.get_snapshots(snapshot_id)[0]._ovo
 
     @classmethod
     def image_volume_cache_get_by_volume_id(cls, context, volume_id):

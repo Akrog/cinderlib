@@ -22,9 +22,9 @@ class MemoryPersistence(persistence_base.PersistenceDriverBase):
     connections = {}
 
     def __init__(self):
-        super(MemoryPersistence, self).__init__()
         # Create fake DB for drivers
         self.fake_db = persistence_base.DB(self)
+        super(MemoryPersistence, self).__init__()
 
     @property
     def db(self):

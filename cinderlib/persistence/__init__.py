@@ -12,7 +12,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+from __future__ import absolute_import
 import inspect
 
 import six
@@ -20,8 +20,6 @@ from stevedore import driver
 
 from cinderlib import exception
 from cinderlib.persistence import base
-
-__all__ = ('setup',)
 
 
 DEFAULT_STORAGE = 'memory'

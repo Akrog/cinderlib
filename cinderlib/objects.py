@@ -21,10 +21,12 @@ from cinder import context
 # NOTE(geguileo): Probably a good idea not to depend on cinder.cmd.volume
 # having all the other imports as they could change.
 from cinder.cmd import volume as volume_cmd
+from cinder import objects as cinder_objs
 from cinder.objects import base as cinder_base_ovo
 from cinder import utils
 from oslo_versionedobjects import base as base_ovo
 from os_brick import exception as brick_exception
+import six
 
 from cinderlib import exception
 
@@ -48,7 +50,10 @@ class Object(object):
                                      overwrite=False)
 
     def __init__(self, backend, **fields_data):
-        self.backend = backend
+        if isinstance(backend, six.string_types):
+            self.backend = self.backend_class.backends[backend]
+        else:
+            self.backend = backend
 
         __ovo = fields_data.get('__ovo')
         if __ovo:
@@ -193,6 +198,10 @@ class Volume(NamedObject):
     _ignore_keys = ('id', 'volume_attachment', 'snapshots')
 
     def __init__(self, backend_or_vol, **kwargs):
+        # Accept backend name for convenience
+        if isinstance(backend_or_vol, six.string_types):
+            backend_or_vol = self.backend_class.backends[backend_or_vol]
+
         # Accept a volume as additional source data
         if isinstance(backend_or_vol, Volume):
             # Availability zone (backend) will be the same as the source
@@ -212,13 +221,41 @@ class Volume(NamedObject):
                 volume_cmd.objects.SnapshotList(context=self.CONTEXT))
 
         super(Volume, self).__init__(backend_or_vol, **kwargs)
-        self.snapshots = set()
-        self.connections = []
+        self._snapshots = None
+        self._connections = None
         self._populate_data()
 
     def _to_primitive(self):
         local_attach = self.local_attach.id if self.local_attach else None
         return {'local_attach': local_attach}
+
+    @property
+    def snapshots(self):
+        # Lazy loading
+        if self._snapshots is None:
+            self._snapshots = self.persistence.get_snapshots(volume_id=self.id)
+            for snap in self._snapshots:
+                snap.volume = self
+
+            ovos = [snap._ovo for snap in self._snapshots]
+            self._ovo.snapshots = cinder_objs.SnapshotList(objects=ovos)
+            self._ovo.obj_reset_changes(('snapshots',))
+        return self._snapshots
+
+    @property
+    def connections(self):
+        # Lazy loading
+        if self._connections is None:
+            self._connections = self.persistence.get_connections(
+                volume_id=self.id)
+            for conn in self._connections:
+                conn.volume = self
+            ovos = [conn._ovo for conn in self._connections]
+            self._ovo.volume_attachment = cinder_objs.VolumeAttachmentList(
+                objects=ovos)
+            self._ovo.obj_reset_changes(('volume_attachment',))
+
+        return self._connections
 
     @classmethod
     def get_by_id(cls, volume_id):
@@ -234,8 +271,8 @@ class Volume(NamedObject):
     @classmethod
     def _load(cls, backend, ovo):
         # Restore snapshot's circular reference removed on serialization
-        for snap in ovo.snapshots:
-            snap.volume = ovo
+        # for snap in ovo.snapshots:
+        #    snap.volume = ovo
 
         # If this object is already present it will be replaced
         obj = Object.objects['Volume'].get(ovo.id)
@@ -250,37 +287,37 @@ class Volume(NamedObject):
         self._populate_data()
 
     def _populate_data(self):
-        old_snapshots = {snap.id: snap for snap in self.snapshots}
+        # old_snapshots = {snap.id: snap for snap in self.snapshots}
 
-        for snap_ovo in self._ovo.snapshots:
-            snap = Object.objects['Snapshot'].get(snap_ovo.id)
-            if snap:
-                snap._replace_ovo(snap_ovo)
-                del old_snapshots[snap.id]
-            else:
-                snap = Snapshot(self, __ovo=snap_ovo)
-                self.snapshots.add(snap)
+        # for snap_ovo in self._ovo.snapshots:
+        #     snap = Object.objects['Snapshot'].get(snap_ovo.id)
+        #     if snap:
+        #         snap._replace_ovo(snap_ovo)
+        #         del old_snapshots[snap.id]
+        #     else:
+        #         snap = Snapshot(self, __ovo=snap_ovo)
+        #         self.snapshots.append(snap)
 
-        for snap_id, snap in old_snapshots.items():
-            self.snapshots.discard(snap)
-            # We leave snapshots in the global DB just in case...
-            # del Object.objects['Snapshot'][snap_id]
+        # for snap_id, snap in old_snapshots.items():
+        #     self.snapshots.remove(snap)
+        #     # We leave snapshots in the global DB just in case...
+        #     # del Object.objects['Snapshot'][snap_id]
 
-        old_connections = {conn.id: conn for conn in self.connections}
+        # old_connections = {conn.id: conn for conn in self.connections}
 
-        for conn_ovo in self._ovo.volume_attachment:
-            conn = Object.objects['Connection'].get(conn_ovo.id)
-            if conn:
-                conn._replace_ovo(conn_ovo)
-                del old_connections[conn.id]
-            else:
-                conn = Connection(self.backend, volume=self, __ovo=conn_ovo)
-                self.connections.append(conn)
+        # for conn_ovo in self._ovo.volume_attachment:
+        #     conn = Object.objects['Connection'].get(conn_ovo.id)
+        #     if conn:
+        #         conn._replace_ovo(conn_ovo)
+        #         del old_connections[conn.id]
+        #     else:
+        #         conn = Connection(self.backend, volume=self, __ovo=conn_ovo)
+        #         self.connections.append(conn)
 
-        for conn_id, conn in old_connections.items():
-            self.connections.remove(conn)
-            # We leave connections in the global DB just in case...
-            # del Object.objects['Connection'][conn_id]
+        # for conn_id, conn in old_connections.items():
+        #     self.connections.remove(conn)
+        #     # We leave connections in the global DB just in case...
+        #     # del Object.objects['Connection'][conn_id]
 
         data = getattr(self._ovo, 'cinderlib_data', {})
         self.local_attach = data.get('local_attach', None)
@@ -347,9 +384,9 @@ class Volume(NamedObject):
     def create_snapshot(self, name='', description='', **kwargs):
         snap = Snapshot(self, name=name, description=description, **kwargs)
         snap.create()
-        self.snapshots.add(snap)
-        self._ovo.snapshots.objects.append(snap._ovo)
-        self.persistence.reset_change_tracker(self, 'snapshots')
+        if self._snapshots is not None:
+            self._snapshots.append(snap)
+            self._ovo.snapshots.objects.append(snap._ovo)
         return snap
 
     def attach(self):
@@ -392,7 +429,9 @@ class Volume(NamedObject):
 
         try:
             conn = Connection.connect(self, connector_dict, **ovo_fields)
-            self.connections.append(conn)
+            if self._connections is not None:
+                self._connections.append(conn)
+                self._ovo.volume_attachment.objects.append(conn._ovo)
             self._ovo.status = 'in-use'
             self.persistence.set_volume(self)
         except Exception:
@@ -402,9 +441,14 @@ class Volume(NamedObject):
         return conn
 
     def _disconnect(self, connection):
-        self.connections.remove(connection)
         self._remove_export()
-        self._ovo.status = 'available'
+        if self._connections is not None:
+            self._connections.remove(connection)
+            self._ovo.volume_attachment.objects.remove(connection._ovo)
+
+        if not self.connections:
+            self._ovo.status = 'available'
+            self.persistence.set_volume(self)
 
     def disconnect(self, connection, force=False):
         connection._disconnect(force)
@@ -434,22 +478,33 @@ class Connection(Object):
                    connection_info=conn_info,
                    *kwargs)
         cls.persistence.set_connection(conn)
-        volume._ovo.volume_attachment.objects.append(conn._ovo)
-        cls.persistence.reset_change_tracker(volume, 'volume_attachment')
         return conn
 
     def __init__(self, *args, **kwargs):
         self.connected = True
-        self.volume = kwargs.pop('volume')
+        self._volume = kwargs.pop('volume')
         self.connector = kwargs.pop('connector', None)
         self.attach_info = kwargs.pop('attach_info', None)
         if '__ovo' not in kwargs:
-            kwargs['volume'] = self.volume._ovo
-            kwargs['volume_id'] = self.volume._ovo.id
+            kwargs['volume'] = self._volume._ovo
+            kwargs['volume_id'] = self._volume._ovo.id
 
         super(Connection, self).__init__(*args, **kwargs)
 
         self._populate_data()
+
+    @property
+    def volume(self):
+        # Lazy loading
+        if self._volume is None:
+            self._volume = Volume.get_by_id(self.volume_id)
+            self._ovo.volume = self._volume._ovo
+        return self._volume
+
+    @volume.setter
+    def volume(self, value):
+        self._volume = value
+        self._ovo.volume = value._ovo
 
     def _to_primitive(self):
         result = {
@@ -492,7 +547,6 @@ class Connection(Object):
     def _load(cls, backend, ovo):
         # Turn this around and do a Volume load
         volume = ovo.volume
-        volume.volume_attachment.objects.append(ovo)
         # Remove circular reference
         delattr(ovo, base_ovo._get_attrname('volume'))
         Volume._load(backend, volume)
@@ -504,7 +558,6 @@ class Connection(Object):
                                                  force=force)
         self.connected = False
 
-        self._ovo.volume.volume_attachment.objects.remove(self._ovo)
         self._ovo.status = 'detached'
         self._ovo.deleted = True
         self.persistence.delete_connection(self)
@@ -548,6 +601,16 @@ class Connection(Object):
             raise exception.ConnectionNotFound(filter=msg)
         return result[0]
 
+    @property
+    def backend(self):
+        if self._backend is None:
+            self._backend = self.volume.backend
+        return self._backend
+
+    @backend.setter
+    def backend(self, value):
+        self._backend = value
+
 
 class Snapshot(NamedObject):
     OVO_CLASS = volume_cmd.objects.Snapshot
@@ -557,10 +620,13 @@ class Snapshot(NamedObject):
     }
 
     def __init__(self, volume, **kwargs):
-        self.volume = volume
+        self._volume = volume
+
         if '__ovo' in kwargs:
-            # Ensure circular reference is set
-            kwargs['__ovo'].volume = volume._ovo
+            # Ensure circular reference is set if present
+            if volume:
+                kwargs['__ovo'].volume = volume._ovo
+            backend = kwargs['__ovo']['progress']
         else:
             kwargs.setdefault('user_id', volume.user_id)
             kwargs.setdefault('project_id', volume.project_id)
@@ -568,14 +634,29 @@ class Snapshot(NamedObject):
             kwargs['volume_size'] = volume.size
             kwargs['volume_type_id'] = volume.volume_type_id
             kwargs['volume'] = volume._ovo
+            if volume:
+                backend = volume.backend.id
+                kwargs['progress'] = backend
 
-        super(Snapshot, self).__init__(volume.backend, **kwargs)
+        super(Snapshot, self).__init__(backend=backend, **kwargs)
+
+    @property
+    def volume(self):
+        # Lazy loading
+        if self._volume is None:
+            self._volume = Volume.get_by_id(self.volume_id)
+            self._ovo.volume = self._volume._ovo
+        return self._volume
+
+    @volume.setter
+    def volume(self, value):
+        self._volume = value
+        self._ovo.volume = value._ovo
 
     @classmethod
     def _load(cls, backend, ovo):
         # Turn this around and do a Volume load
         volume = ovo.volume
-        volume.snapshots.objects.append(ovo)
         # Remove circular reference
         delattr(ovo, base_ovo._get_attrname('volume'))
         Volume._load(backend, volume)
@@ -608,13 +689,12 @@ class Snapshot(NamedObject):
             # just didn't complete.
             # TODO: raise with the snap info
             raise
-        # Instead of refreshing from the DB we modify the lists manually
-        self.volume.snapshots.discard(self)
-        try:
-            self.volume._ovo.snapshots.objects.remove(self._ovo)
-            self.persistence.reset_change_tracker(self.volume, 'snapshots')
-        except ValueError:
-            pass
+        if self._volume is not None and self._volume._snapshots is not None:
+            try:
+                self._volume._snapshots.remove(self)
+                self._volume._ovo.snapshots.objects.remove(self._ovo)
+            except ValueError:
+                pass
 
     def create_volume(self, **new_vol_params):
         new_vol_params.setdefault('size', self.volume_size)

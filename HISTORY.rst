@@ -11,6 +11,7 @@ History
   - Support setting custom root_helper.
   - Setting default project_id and user_id.
   - Persistence plugin mechanism
+  - DB persistence plugin
 
 - Bug fixes:
 
