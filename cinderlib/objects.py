@@ -23,8 +23,10 @@ from cinder import context
 from cinder.cmd import volume as volume_cmd
 from cinder import objects as cinder_objs
 from cinder.objects import base as cinder_base_ovo
-from cinder import utils
 from os_brick import exception as brick_exception
+from os_brick import initiator as brick_initiator
+from os_brick.initiator import connector as brick_connector
+from oslo_log import log as logging
 from oslo_utils import timeutils
 from oslo_versionedobjects import base as base_ovo
 import six
@@ -32,6 +34,7 @@ import six
 from cinderlib import exception
 
 
+LOG = logging.getLogger(__name__)
 DEFAULT_PROJECT_ID = 'cinderlib'
 DEFAULT_USER_ID = 'cinderlib'
 
@@ -396,7 +399,9 @@ class Volume(NamedObject):
         return snap
 
     def attach(self):
-        connector_dict = utils.brick_get_connector_properties(
+        connector_dict = brick_connector.get_connector_properties(
+            self.backend_class.root_helper,
+            volume_cmd.CONF.my_ip,
             self.backend.configuration.use_multipath_for_image_xfer,
             self.backend.configuration.enforce_multipath_for_image_xfer)
         conn = self.connect(connector_dict)
@@ -470,6 +475,18 @@ class Volume(NamedObject):
 
 
 class Connection(Object):
+    """Cinderlib Connection info that maps to VolumeAttachment.
+
+    On Pike we don't have the connector field on the VolumeAttachment ORM
+    instance so we use the connection_info to store everything.
+
+    We'll have a dictionary:
+      {
+        'conn': connection info
+        'connector': connector dictionary
+        'device': result of connect_volume
+      }
+    """
     OVO_CLASS = volume_cmd.objects.VolumeAttachment
 
     @classmethod
@@ -481,22 +498,36 @@ class Connection(Object):
                    volume=volume,
                    status='attached',
                    attach_mode='rw',
-                   connection_info=conn_info,
+                   connection_info={'conn': conn_info},
                    *kwargs)
+        conn.connector_info = connector
         cls.persistence.set_connection(conn)
         return conn
 
+    @staticmethod
+    def _is_multipathed_conn(conn_info):
+        iscsi_mp = 'target_iqns' in conn_info and 'target_portals' in conn_info
+        fc_mp = not isinstance(conn_info.get('target_wwn', ''),
+                               six.string_types)
+
+        return iscsi_mp or fc_mp
+
     def __init__(self, *args, **kwargs):
-        self.connected = True
+        conn_info = (kwargs.get('connection_info') or {}).get('conn', {})
+
+        # If multipathed not defined autodetect it
+        self.use_multipath = kwargs.pop('use_multipath',
+                                        self._is_multipathed_conn(conn_info))
+
+        scan_attempts = brick_initiator.DEVICE_SCAN_ATTEMPTS_DEFAULT
+        self.scan_attempts = kwargs.pop('device_scan_attempts', scan_attempts)
         self._volume = kwargs.pop('volume')
-        self.connector = kwargs.pop('connector', None)
-        self.attach_info = kwargs.pop('attach_info', None)
+        self._connector = None
         if '__ovo' not in kwargs:
             kwargs['volume'] = self._volume._ovo
             kwargs['volume_id'] = self._volume._ovo.id
 
         super(Connection, self).__init__(*args, **kwargs)
-
         self._populate_data()
 
     @property
@@ -529,21 +560,86 @@ class Connection(Object):
         result['attachment'] = attach_info
         return result
 
+    @property
+    def conn_info(self):
+        conn_info = self._ovo.connection_info
+        if conn_info:
+            return conn_info.get('conn')
+        return {}
+
+    @conn_info.setter
+    def conn_info(self, value):
+        if not value:
+            self._ovo.connection_info = None
+            return
+
+        if self._ovo.connection_info is None:
+            self._ovo.connection_info = {}
+        self._ovo.connection_info['conn'] = value
+
+    @property
+    def protocol(self):
+        return self.conn_info.get('driver_volume_type')
+
+    @property
+    def connector_info(self):
+        if self.connection_info:
+            return self.connection_info.get('connector')
+        return None
+
+    @connector_info.setter
+    def connector_info(self, value):
+        self.connection_info['connector'] = value
+        # Since we are changing the dictionary the OVO won't detect the change
+        self._changed_fields.add('connection_info')
+
+    @property
+    def device(self):
+        if self.connection_info:
+            return self.connection_info.get('device')
+        return None
+
+    @device.setter
+    def device(self, value):
+        if value:
+            self.connection_info['device'] = value
+        else:
+            self.connection_info.pop('device', None)
+        # Since we are changing the dictionary the OVO won't detect the change
+        self._changed_fields.add('connection_info')
+
+    @property
+    def path(self):
+        device = self.device
+        if not device:
+            return None
+        return device['path']
+
+    @property
+    def connector(self):
+        if not self._connector:
+            if not self.conn_info:
+                return None
+            self._connector = brick_connector.InitiatorConnector.factory(
+                self.protocol, self.backend_class.root_helper,
+                use_multipath=self.use_multipath,
+                device_scan_attempts=self.scan_attempts,
+                # NOTE(geguileo): afaik only remotefs uses the connection info
+                conn=self.conn_info)
+        return self._connector
+
+    @property
+    def attached(self):
+        return bool(self.device)
+
+    @property
+    def connected(self):
+        return bool(self.conn_info)
+
     def _populate_data(self):
         # Ensure circular reference is set
-        self._ovo.volume = self.volume._ovo
-
-        data = getattr(self._ovo, 'cinderlib_data', None)
-        if data:
-            self.connector = data.get('connector', None)
-            self.attach_info = data.get('attachment', None)
-        conn = (self.attach_info or {}).get('connector')
-        if isinstance(conn, dict):
-            self.attach_info['connector'] = utils.brick_get_connector(
-                self.connection_info['driver_volume_type'],
-                conn=self.connection_info,
-                **conn)
-        self.attached = bool(self.attach_info)
+        if self._volume:
+            self._ovo.volume = self.volume._ovo
 
     def _replace_ovo(self, ovo):
         super(Connection, self)._replace_ovo(ovo)
@@ -559,13 +655,11 @@ class Connection(Object):
         return Connection.objects[ovo.id]
 
     def _disconnect(self, force=False):
-        self.backend.driver.terminate_connection(self._ovo.volume,
-                                                 self.connector,
+        self.backend.driver.terminate_connection(self.volume._ovo,
+                                                 self.connector_info,
                                                  force=force)
-        self.connected = False
-
+        self.conn_info = None
         self._ovo.status = 'detached'
-        self._ovo.deleted = True
         self.persistence.delete_connection(self)
 
     def disconnect(self, force=False):
@@ -573,31 +667,39 @@ class Connection(Object):
         self.volume._disconnect(self)
 
     def attach(self):
-        self.attach_info = self.backend.driver._connect_device(
-            self.connection_info)
-        self.attached = True
-        self.volume.local_attach = self
+        self.device = self.connector.connect_volume(self.conn_info['data'])
+        self.persistence.set_connection(self)
+        try:
+            unavailable = not self.connector.check_valid_device(self.path)
+        except Exception:
+            unavailable = True
+            LOG.exception('Could not validate device %s', self.path)
+
+        if unavailable:
+            raise exception.DeviceUnavailable(
+                path=self.path, attach_info=self._ovo.connection_information,
+                reason=('Unable to access the backend storage via path '
+                        '%s.') % self.path)
+        if self._volume:
+            self.volume.local_attach = self
 
     def detach(self, force=False, ignore_errors=False, exc=None):
         if not exc:
             exc = brick_exception.ExceptionChainer()
-        connector = self.attach_info['connector']
         with exc.context(force, 'Disconnect failed'):
-            connector.disconnect_volume(self.connection_info['data'],
-                                        self.attach_info['device'],
-                                        force=force,
-                                        ignore_errors=ignore_errors)
-        self.attached = False
-        self.volume.local_attach = None
+            self.connector.disconnect_volume(self.conn_info['data'],
+                                             self.device,
+                                             force=force,
+                                             ignore_errors=ignore_errors)
+        if not exc or ignore_errors:
+            if self._volume:
+                self.volume.local_attach = None
+            self.device = None
+            self.persistence.set_connection(self)
+            self._connector = None
 
         if exc and not ignore_errors:
             raise exc
-
-    @property
-    def path(self):
-        if self.attach_info:
-            return self.attach_info['device']['path']
-        return None
 
     @classmethod
     def get_by_id(cls, connection_id):

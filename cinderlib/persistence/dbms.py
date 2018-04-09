@@ -14,6 +14,7 @@
 #    under the License.
 
 from __future__ import absolute_import
+
 import logging
 
 from cinder.cmd import volume as volume_cmd
@@ -21,13 +22,13 @@ from cinder.db import api as db_api
 from cinder.db import migration
 from cinder.db.sqlalchemy import api as sqla_api
 from cinder import objects as cinder_objs
-# from oslo_log import log as logging
+from oslo_log import log
 
 from cinderlib import objects
 from cinderlib.persistence import base as persistence_base
 
 
-LOG = logging.getLogger(__name__)
+LOG = log.getLogger(__name__)
 
 
 class DBPersistence(persistence_base.PersistenceDriverBase):
@@ -120,8 +121,6 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
 
         if 'connection_info' in changed:
             connection._convert_connection_info_to_db_format(changed)
-        if 'connector' in changed:
-            connection._convert_connector_to_db_format(changed)
 
         # Create
         if 'id' in changed:

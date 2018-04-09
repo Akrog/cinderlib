@@ -124,6 +124,8 @@ class Backend(object):
         # Prevent driver dynamic loading clearing configuration options
         volume_cmd.CONF._ConfigOpts__cache = MyDict()
 
+        cls.root_helper = root_helper
+
         volume_cmd.CONF.version = volume_cmd.version.version_string()
         volume_cmd.CONF.register_opt(
             configuration.cfg.StrOpt('stateless_cinder'),

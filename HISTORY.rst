@@ -12,6 +12,7 @@ History
   - Setting default project_id and user_id.
   - Persistence plugin mechanism
   - DB persistence plugin
+  - No longer dependent on Cinder's attach/detach code
 
 - Bug fixes:
 
