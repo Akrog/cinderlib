@@ -24,8 +24,9 @@ from cinder.cmd import volume as volume_cmd
 from cinder import objects as cinder_objs
 from cinder.objects import base as cinder_base_ovo
 from cinder import utils
-from oslo_versionedobjects import base as base_ovo
 from os_brick import exception as brick_exception
+from oslo_utils import timeutils
+from oslo_versionedobjects import base as base_ovo
 import six
 
 from cinderlib import exception
@@ -112,6 +113,9 @@ class Object(object):
             elif field.nullable:
                 fields_values.setdefault(field_name, None)
 
+        if ('created_at' in self.OVO_CLASS.fields and
+                not fields_values.get('created_at')):
+            fields_values['created_at'] = timeutils.utcnow()
         return self.OVO_CLASS(context=self.CONTEXT, **fields_values)
 
     @property

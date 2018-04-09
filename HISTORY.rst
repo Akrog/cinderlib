@@ -22,6 +22,7 @@ History
   - Fix iSCSI detach issue related to privsep
   - Fix wrong size in volume from snapshot
   - Fix name & description inconsistency
+  - Set created_at field on creation
 
 0.1.0 (2017-11-03)
 ------------------
