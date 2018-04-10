@@ -13,6 +13,7 @@ History
   - Persistence plugin mechanism
   - DB persistence plugin
   - No longer dependent on Cinder's attach/detach code
+  - Add device_attached method to update volume on attaching node
 
 - Bug fixes:
 

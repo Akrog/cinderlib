@@ -666,9 +666,13 @@ class Connection(Object):
         self._disconnect(force)
         self.volume._disconnect(self)
 
-    def attach(self):
-        self.device = self.connector.connect_volume(self.conn_info['data'])
+    def device_attached(self, device):
+        self.device = device
         self.persistence.set_connection(self)
+
+    def attach(self):
+        device = self.connector.connect_volume(self.conn_info['data'])
+        self.device_attached(device)
         try:
             unavailable = not self.connector.check_valid_device(self.path)
         except Exception:
