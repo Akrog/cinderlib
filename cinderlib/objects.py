@@ -490,7 +490,7 @@ class Connection(Object):
     OVO_CLASS = volume_cmd.objects.VolumeAttachment
 
     @classmethod
-    def connect(cls, volume, connector, *kwargs):
+    def connect(cls, volume, connector, **kwargs):
         conn_info = volume.backend.driver.initialize_connection(
             volume._ovo, connector)
         conn = cls(volume.backend,
@@ -499,7 +499,7 @@ class Connection(Object):
                    status='attached',
                    attach_mode='rw',
                    connection_info={'conn': conn_info},
-                   *kwargs)
+                   **kwargs)
         conn.connector_info = connector
         cls.persistence.set_connection(conn)
         return conn
