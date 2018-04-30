@@ -27,6 +27,7 @@ History
   - Fix name & description inconsistency
   - Set created_at field on creation
   - Connection fields not being set
+  - DeviceUnavailable exception
 
 0.1.0 (2017-11-03)
 ------------------

@@ -346,7 +346,8 @@ class RBDConnector(connectors.rbd.RBDConnector):
         """Verify an existing RBD handle is connected and valid."""
         try:
             self._execute('dd', 'if=' + path, 'of=/dev/null', 'bs=4096',
-                          'count=1', run_as_root=True)
+                          'count=1', root_helper=self._root_helper,
+                          run_as_root=True)
         except putils.ProcessExecutionError:
             return False
         return True

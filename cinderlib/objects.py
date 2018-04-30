@@ -22,6 +22,7 @@ from cinder import context
 # having all the other imports as they could change.
 from cinder.cmd import volume as volume_cmd
 from cinder import objects as cinder_objs
+from cinder import exception as cinder_exception
 from cinder.objects import base as cinder_base_ovo
 from os_brick import exception as brick_exception
 from os_brick import initiator as brick_initiator
@@ -681,7 +682,7 @@ class Connection(Object):
             LOG.exception('Could not validate device %s', self.path)
 
         if unavailable:
-            raise exception.DeviceUnavailable(
+            raise cinder_exception.DeviceUnavailable(
                 path=self.path, attach_info=self._ovo.connection_information,
                 reason=('Unable to access the backend storage via path '
                         '%s.') % self.path)
