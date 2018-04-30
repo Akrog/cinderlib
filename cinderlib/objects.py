@@ -625,7 +625,8 @@ class Connection(Object):
                 use_multipath=self.use_multipath,
                 device_scan_attempts=self.scan_attempts,
                 # NOTE(geguileo): afaik only remotefs uses the connection info
-                conn=self.conn_info)
+                conn=self.conn_info,
+                do_local_attach=True)
         return self._connector
 
     @property

@@ -14,6 +14,7 @@ History
   - DB persistence plugin
   - No longer dependent on Cinder's attach/detach code
   - Add device_attached method to update volume on attaching node
+  - Support attaching/detaching RBD volumes
 
 - Bug fixes:
 
