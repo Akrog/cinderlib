@@ -226,6 +226,19 @@ class Backend(object):
         volume_cmd.logging.setup(volume_cmd.CONF, 'cinder')
         volume_cmd.python_logging.captureWarnings(True)
 
+    @staticmethod
+    def unlink_root(*links, **kwargs):
+        no_errors = kwargs.get('no_errors', False)
+        raise_at_end = kwargs.get('raise_at_end', False)
+        exc = brick_exception.ExceptionChainer()
+        catch_exception = no_errors or raise_at_end
+        for link in links:
+            with exc.context(catch_exception, 'Unlink failed for %s', link):
+                putils.execute('unlink', link, run_as_root=True,
+                               root_helper=Backend.root_helper)
+        if not no_errors and raise_at_end and exc:
+            raise exc
+
     @classmethod
     def _set_priv_helper(cls, root_helper):
         utils.get_root_helper = lambda: root_helper
@@ -254,6 +267,8 @@ class Backend(object):
 
         utils.connector.get_connector_properties = my_bgcp
         utils.connector.InitiatorConnector.factory = staticmethod(my_bgc)
+        if hasattr(rootwrap, 'unlink_root'):
+            rootwrap.unlink_root = cls.unlink_root
 
     @classmethod
     def _set_coordinator(cls, file_locks_path):
