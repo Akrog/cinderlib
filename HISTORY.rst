@@ -28,6 +28,7 @@ History
   - Set created_at field on creation
   - Connection fields not being set
   - DeviceUnavailable exception
+  - Multipath settings after persistence retrieval
 
 0.1.0 (2017-11-03)
 ------------------

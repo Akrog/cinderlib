@@ -506,19 +506,31 @@ class Connection(Object):
         return conn
 
     @staticmethod
-    def _is_multipathed_conn(conn_info):
+    def _is_multipathed_conn(kwargs):
+        # Priority:
+        #  - kwargs['use_multipath']
+        #  - Detect from kwargs['connnection_info']['conn']
+        #  - multipath configuration in connector from OVO in kwargs
+        #  - Detect from connection_info data from OVO in kwargs
+
+        if 'use_multipath' in kwargs:
+            return kwargs['use_multipath']
+
+        conn_info = (kwargs.get('connection_info') or {}).get('conn', {})
+        if not conn_info and '__ovo' in kwargs:
+            ovo = kwargs['__ovo'].connection_info or {}
+            if 'multipath' in ovo.get('connector', {}):
+                return ovo['connector']['multipath']
+            conn_info = ovo.get('conn', {})
+
+        # If multipathed not defined autodetect it
         iscsi_mp = 'target_iqns' in conn_info and 'target_portals' in conn_info
         fc_mp = not isinstance(conn_info.get('target_wwn', ''),
                                six.string_types)
-
         return iscsi_mp or fc_mp
 
     def __init__(self, *args, **kwargs):
-        conn_info = (kwargs.get('connection_info') or {}).get('conn', {})
-
-        # If multipathed not defined autodetect it
-        self.use_multipath = kwargs.pop('use_multipath',
-                                        self._is_multipathed_conn(conn_info))
+        self.use_multipath = self._is_multipathed_conn(kwargs)
 
         scan_attempts = brick_initiator.DEVICE_SCAN_ATTEMPTS_DEFAULT
         self.scan_attempts = kwargs.pop('device_scan_attempts', scan_attempts)
