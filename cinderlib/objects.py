@@ -45,6 +45,15 @@ DEFAULT_USER_ID = 'cinderlib'
 volume_cmd.objects.register_all()
 
 
+class KeyValue(object):
+    def __init__(self, key=None, value=None):
+        self.key = key
+        self.value = value
+
+    def __eq__(self, other):
+        return (self.key, self.value) == (other.key, other.value)
+
+
 class Object(object):
     """Base class for our resource representation objects."""
     DEFAULT_FIELDS_VALUES = {}

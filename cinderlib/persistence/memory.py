@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from cinderlib import objects
 from cinderlib.persistence import base as persistence_base
 
 
@@ -20,6 +21,7 @@ class MemoryPersistence(persistence_base.PersistenceDriverBase):
     volumes = {}
     snapshots = {}
     connections = {}
+    key_values = {}
 
     def __init__(self):
         # Create fake DB for drivers
@@ -66,6 +68,14 @@ class MemoryPersistence(persistence_base.PersistenceDriverBase):
         result = self._filter_by(result, 'volume_id', volume_id)
         return result
 
+    def get_key_values(self, key=None):
+        try:
+            result = ([self.key_values[key]] if key
+                      else self.key_values.values())
+        except KeyError:
+            return []
+        return result
+
     def set_volume(self, volume):
         self.volumes[volume.id] = volume
         super(MemoryPersistence, self).set_volume(volume)
@@ -78,6 +88,9 @@ class MemoryPersistence(persistence_base.PersistenceDriverBase):
         self.connections[connection.id] = connection
         super(MemoryPersistence, self).set_connection(connection)
 
+    def set_key_value(self, key_value):
+        self.key_values[key_value.key] = key_value
+
     def delete_volume(self, volume):
         self.volumes.pop(volume.id, None)
         super(MemoryPersistence, self).delete_volume(volume)
@@ -89,3 +102,6 @@ class MemoryPersistence(persistence_base.PersistenceDriverBase):
     def delete_connection(self, connection):
         self.connections.pop(connection.id, None)
         super(MemoryPersistence, self).delete_connection(connection)
+
+    def delete_key_value(self, key_value):
+        self.key_values.pop(key_value.key, None)

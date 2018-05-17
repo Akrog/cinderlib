@@ -16,6 +16,7 @@
 import unittest2
 
 from cinder.cmd import volume as volume_cmd
+from cinder.db.sqlalchemy import models
 from oslo_versionedobjects import fields
 
 import cinderlib
@@ -45,8 +46,8 @@ class BasePersistenceTest(unittest2.TestCase):
         cinderlib.Backend.backends = {}
         super(BasePersistenceTest, self).tearDown()
 
-    def sorted(self, resources):
-        return sorted(resources, key=lambda x: x.id)
+    def sorted(self, resources, key='id'):
+        return sorted(resources, key=lambda x: getattr(x, key))
 
     def create_n_volumes(self, n):
         return self.create_volumes([{'size': i, 'name': 'disk%s' % i}
@@ -79,7 +80,18 @@ class BasePersistenceTest(unittest2.TestCase):
             self.persistence.set_connection(conn)
         return self.sorted(conns)
 
+    def create_key_values(self):
+        kvs = []
+        for i in range(2):
+            kv = cinderlib.KeyValue(key='key%i' % i, value='value%i' % i)
+            kvs.append(kv)
+            self.persistence.set_key_value(kv)
+        return kvs
+
     def _convert_to_dict(self, obj):
+        if isinstance(obj, models.BASE):
+            return dict(obj)
+
         if not isinstance(obj, cinderlib.objects.Object):
             return obj
 
@@ -172,6 +184,19 @@ class BasePersistenceTest(unittest2.TestCase):
                                            volume_id=vols[0].id)
         self.assertListEqualObj([], res)
 
+    def test_delete_volume(self):
+        vols = self.create_n_volumes(2)
+        self.persistence.delete_volume(vols[0])
+        res = self.persistence.get_volumes()
+        self.assertListEqualObj([vols[1]], res)
+
+    def test_delete_volume_not_found(self):
+        vols = self.create_n_volumes(2)
+        fake_vol = cinderlib.Volume(backend_or_vol=self.backend)
+        self.persistence.delete_volume(fake_vol)
+        res = self.persistence.get_volumes()
+        self.assertListEqualObj(vols, self.sorted(res))
+
     def test_set_snapshot(self):
         raise NotImplemented('Test class must implement this method')
 
@@ -237,6 +262,19 @@ class BasePersistenceTest(unittest2.TestCase):
                                              volume_id=snaps[0].volume.id)
         self.assertListEqualObj([], res)
 
+    def test_delete_snapshot(self):
+        snaps = self.create_snapshots()
+        self.persistence.delete_snapshot(snaps[0])
+        res = self.persistence.get_snapshots()
+        self.assertListEqualObj([snaps[1]], res)
+
+    def test_delete_snapshot_not_found(self):
+        snaps = self.create_snapshots()
+        fake_snap = cinderlib.Snapshot(snaps[0].volume)
+        self.persistence.delete_snapshot(fake_snap)
+        res = self.persistence.get_snapshots()
+        self.assertListEqualObj(snaps, self.sorted(res))
+
     def test_set_connection(self):
         raise NotImplemented('Test class must implement this method')
 
@@ -283,3 +321,56 @@ class BasePersistenceTest(unittest2.TestCase):
         res = self.persistence.get_connections(volume_id=conns[0].volume.id,
                                                connection_id=conns[1].id)
         self.assertListEqualObj([], res)
+
+    def test_delete_connection(self):
+        conns = self.create_connections()
+        self.persistence.delete_connection(conns[1])
+        res = self.persistence.get_connections()
+        self.assertListEqualObj([conns[0]], res)
+
+    def test_delete_connection_not_found(self):
+        conns = self.create_connections()
+        fake_conn = cinderlib.Connection(self.backend,
+                                         volume=conns[0].volume)
+        self.persistence.delete_connection(fake_conn)
+        res = self.persistence.get_connections()
+        self.assertListEqualObj(conns, self.sorted(res))
+
+    def test_set_key_values(self):
+        raise NotImplemented('Test class must implement this method')
+
+    def assertKVsEqual(self, expected, actual):
+        if len(expected) == len(actual):
+            for (key, value), actual in zip(expected, actual):
+                self.assertEqual(key, actual.key)
+                self.assertEqual(value, actual.value)
+            return
+        assert False, '%s is not equal to %s' % (expected, actual)
+
+    def get_key_values_all(self):
+        kvs = self.create_key_values()
+        res = self.persistence.get_key_values()
+        self.assertListEqual(kvs, self.sorted(res, 'key'))
+
+    def test_get_key_values_by_key(self):
+        kvs = self.create_key_values()
+        res = self.persistence.get_key_values(key=kvs[1].key)
+        self.assertListEqual([kvs[1]], res)
+
+    def test_get_key_values_by_key_not_found(self):
+        self.create_key_values()
+        res = self.persistence.get_key_values(key='fake-uuid')
+        self.assertListEqual([], res)
+
+    def test_delete_key_value(self):
+        kvs = self.create_key_values()
+        self.persistence.delete_key_value(kvs[1])
+        res = self.persistence.get_key_values()
+        self.assertListEqual([kvs[0]], res)
+
+    def test_delete_key_not_found(self):
+        kvs = self.create_key_values()
+        fake_key = cinderlib.KeyValue('fake-key')
+        self.persistence.delete_key_value(fake_key)
+        res = self.persistence.get_key_values()
+        self.assertListEqual(kvs, self.sorted(res, 'key'))

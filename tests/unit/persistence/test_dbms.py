@@ -20,6 +20,7 @@ from cinder import objects as cinder_ovos
 from oslo_db import api as oslo_db_api
 
 import cinderlib
+from cinderlib.persistence import dbms
 from tests.unit.persistence import base
 
 
@@ -32,6 +33,7 @@ class TestMemoryDBPersistence(base.BasePersistenceTest):
                              sqla_api.models.VolumeAttachment).delete()
         sqla_api.model_query(self.context,
                              sqla_api.models.Volume).delete()
+        sqla_api.get_session().query(dbms.KeyValue).delete()
         super(TestMemoryDBPersistence, self).tearDown()
 
     def test_db(self):
@@ -88,6 +90,16 @@ class TestMemoryDBPersistence(base.BasePersistenceTest):
         cl_conn = cinderlib.Connection(vol.backend, volume=vol, __ovo=ovo_conn)
 
         self.assertEqualObj(conn, cl_conn)
+
+    def test_set_key_values(self):
+        res = sqla_api.get_session().query(dbms.KeyValue).all()
+        self.assertListEqual([], res)
+
+        expected = [dbms.KeyValue(key='key', value='value')]
+        self.persistence.set_key_value(expected[0])
+
+        actual = sqla_api.get_session().query(dbms.KeyValue).all()
+        self.assertListEqualObj(expected, actual)
 
 
 class TestDBPersistence(TestMemoryDBPersistence):

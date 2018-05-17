@@ -14,6 +14,7 @@
 #    under the License.
 
 import cinderlib
+from cinderlib.persistence import memory
 from tests.unit.persistence import base
 
 
@@ -25,6 +26,7 @@ class TestMemoryPersistence(base.BasePersistenceTest):
         self.persistence.volumes = {}
         self.persistence.snapshots = {}
         self.persistence.connections = {}
+        self.persistence.key_values = {}
         super(TestMemoryPersistence, self).tearDown()
 
     def test_db(self):
@@ -55,3 +57,10 @@ class TestMemoryPersistence(base.BasePersistenceTest):
 
         self.persistence.set_connection(conn)
         self.assertDictEqual({conn.id: conn}, self.persistence.connections)
+
+    def test_set_key_values(self):
+        self.assertDictEqual({}, self.persistence.key_values)
+        expected = [cinderlib.KeyValue('key', 'value')]
+        self.persistence.set_key_value(expected[0])
+        self.assertTrue('key' in self.persistence.key_values)
+        self.assertEqual(expected, self.persistence.key_values.values())

@@ -21,6 +21,7 @@ from cinder.cmd import volume as volume_cmd
 from cinder.db import api as db_api
 from cinder.db import migration
 from cinder.db.sqlalchemy import api as sqla_api
+from cinder.db.sqlalchemy import models
 from cinder import objects as cinder_objs
 from oslo_log import log
 
@@ -29,6 +30,12 @@ from cinderlib.persistence import base as persistence_base
 
 
 LOG = log.getLogger(__name__)
+
+
+class KeyValue(models.BASE, models.models.ModelBase, objects.KeyValue):
+    __tablename__ = 'cinderlib_persistence_key_value'
+    key = models.Column(models.String(255), primary_key=True)
+    value = models.Column(models.Text)
 
 
 class DBPersistence(persistence_base.PersistenceDriverBase):
@@ -47,7 +54,12 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             lazy=True)
 
         migration.db_sync()
+        self._create_key_value_table()
         super(DBPersistence, self).__init__()
+
+    def _create_key_value_table(self):
+        models.BASE.metadata.create_all(sqla_api.get_engine(),
+                                        tables=[KeyValue.__table__])
 
     @property
     def db(self):
@@ -85,6 +97,17 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         result = [objects.Connection(None, volume=None, __ovo=ovo)
                   for ovo in ovos.objects]
         return result
+
+    def _get_kv(self, key=None, session=None):
+        session = session or sqla_api.get_session()
+        query = session.query(KeyValue)
+        if key is None:
+            return query.all()
+        res = query.filter_by(key=key).first()
+        return [res] if res else []
+
+    def get_key_values(self, key=None):
+        return self._get_kv(key)
 
     def set_volume(self, volume):
         changed = self.get_changed_fields(volume)
@@ -132,15 +155,22 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
                                              changed)
         super(DBPersistence, self).set_connection(connection)
 
+    def set_key_value(self, key_value):
+        session = sqla_api.get_session()
+        with session.begin():
+            kv = self._get_kv(key_value.key, session)
+            kv = kv[0] if kv else KeyValue(key=key_value.key)
+            kv.value = key_value.value
+            session.add(kv)
+
     def delete_volume(self, volume):
         if self.soft_deletes:
             LOG.debug('soft deleting volume %s', volume.id)
             self.db.volume_destroy(objects.CONTEXT, volume.id)
         else:
             LOG.debug('hard deleting volume %s', volume.id)
-            sqla_api.model_query(objects.CONTEXT,
-                                 sqla_api.models.Volume
-                                 ).filter_by(id=volume.id).delete()
+            query = sqla_api.model_query(objects.CONTEXT, models.Volume)
+            query.filter_by(id=volume.id).delete()
         super(DBPersistence, self).delete_volume(volume)
 
     def delete_snapshot(self, snapshot):
@@ -149,9 +179,8 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             self.db.snapshot_destroy(objects.CONTEXT, snapshot.id)
         else:
             LOG.debug('hard deleting snapshot %s', snapshot.id)
-            sqla_api.model_query(objects.CONTEXT,
-                                 sqla_api.models.Snapshot
-                                 ).filter_by(id=snapshot.id).delete()
+            query = sqla_api.model_query(objects.CONTEXT, models.Snapshot)
+            query.filter_by(id=snapshot.id).delete()
         super(DBPersistence, self).delete_snapshot(snapshot)
 
     def delete_connection(self, connection):
@@ -160,10 +189,14 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             self.db.attachment_destroy(objects.CONTEXT, connection.id)
         else:
             LOG.debug('hard deleting connection %s', connection.id)
-            sqla_api.model_query(objects.CONTEXT,
-                                 sqla_api.models.VolumeAttachment
-                                 ).filter_by(id=connection.id).delete()
+            query = sqla_api.model_query(objects.CONTEXT,
+                                         models.VolumeAttachment)
+            query.filter_by(id=connection.id).delete()
         super(DBPersistence, self).delete_connection(connection)
+
+    def delete_key_value(self, key_value):
+        query = sqla_api.get_session().query(KeyValue)
+        query.filter_by(key=key_value.key).delete()
 
 
 class MemoryDBPersistence(DBPersistence):

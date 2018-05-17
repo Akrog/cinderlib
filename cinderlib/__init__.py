@@ -12,6 +12,7 @@ DEFAULT_USER_ID = objects.DEFAULT_USER_ID
 Volume = objects.Volume
 Snapshot = objects.Snapshot
 Connection = objects.Connection
+KeyValue = objects.KeyValue
 
 load = serialization.load
 json = serialization.json
