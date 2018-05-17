@@ -529,7 +529,7 @@ class Connection(Object):
         if not conn_info and '__ovo' in kwargs:
             ovo = kwargs['__ovo'].connection_info or {}
             if 'multipath' in ovo.get('connector', {}):
-                return ovo['connector']['multipath']
+                return ovo['connector'].get('multipath', False)
             conn_info = ovo.get('conn', {})
 
         # If multipathed not defined autodetect it
