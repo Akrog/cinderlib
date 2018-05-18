@@ -57,7 +57,7 @@ setuptools.setup(
     author_email='geguileo@redhat.com',
     url='https://github.com/akrog/cinderlib',
     packages=setuptools.find_packages(exclude=['tmp', 'tests*']),
-    include_package_data=True,
+    include_package_data=False,
     install_requires=requirements,
     extras_requires=extras,
     license="Apache Software License 2.0",
