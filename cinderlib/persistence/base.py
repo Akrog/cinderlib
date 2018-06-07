@@ -29,6 +29,9 @@ class PersistenceDriverBase(object):
     updated, and removed, as well as provide a mechanism for users to retrieve
     volumes, snapshots, and connections.
     """
+    def __init__(self, **kwargs):
+        pass
+
     @property
     def db(self):
         raise NotImplemented()

@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from cinderlib import objects
 from cinderlib.persistence import base as persistence_base
 
 

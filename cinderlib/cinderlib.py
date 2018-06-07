@@ -82,6 +82,7 @@ class Backend(object):
         self.driver.set_throttle()
         self.driver.set_initialized()
         self._driver_cfg = driver_cfg
+        self._volumes = None
 
     def __repr__(self):
         return '<cinderlib.Backend %s>' % self.id
@@ -95,7 +96,9 @@ class Backend(object):
 
     @property
     def volumes(self):
-        return self.persistence.get_volumes(backend_name=self.id)
+        if self._volumes is None:
+            self._volumes = self.persistence.get_volumes(backend_name=self.id)
+        return self._volumes
 
     def volumes_filtered(self, volume_id=None, volume_name=None):
         return self.persistence.get_volumes(backend_name=self.id,
@@ -113,6 +116,13 @@ class Backend(object):
                              **kwargs)
         vol.create()
         return vol
+
+    def _volume_removed(self, volume):
+        if self._volumes:
+            for i, vol in enumerate(self._volumes):
+                if vol.id == volume.id:
+                    del self._volumes[i]
+                    break
 
     def validate_connector(self, connector_dict):
         """Raise exception if missing info for volume's connect call."""
@@ -273,8 +283,9 @@ class Backend(object):
     @classmethod
     def load(cls, json_src):
         backend = Backend.load_backend(json_src['backend'])
-        for volume in json_src['volumes']:
-            objects.Volume.load(volume)
+        volumes = json_src.get('volumes')
+        if volumes:
+            backend._volumes = [objects.Volume.load(v) for v in volumes]
         return backend
 
     @classmethod
@@ -290,6 +301,10 @@ class Backend(object):
 
 
 setup = Backend.global_setup
+# Used by serialization.load
+objects.Backend = Backend
+# Needed if we use serialization.load before initializing cinderlib
+objects.Object.backend_class = Backend
 
 
 class MyDict(dict):
