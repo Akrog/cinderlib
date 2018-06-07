@@ -167,3 +167,13 @@ def json():
 def jsons():
     """Convert to a Json string everything we have in this system."""
     return json_lib.dumps(json())
+
+
+def dump():
+    """Convert to Json everything we have in this system."""
+    return [backend.dump for backend in BACKEND_CLASS.backends.values()]
+
+
+def dumps():
+    """Convert to a Json string everything we have in this system."""
+    return json_lib.dumps(dump())

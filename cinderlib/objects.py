@@ -142,6 +142,17 @@ class Object(object):
     def jsons(self):
         return json_lib.dumps(self.json)
 
+    @property
+    def dump(self):
+        # Make sure we load lazy loading properties
+        for lazy_property in self.LAZY_PROPERTIES:
+            getattr(self, lazy_property)
+        return self.json
+
+    @property
+    def dumps(self):
+        return json_lib.dumps(self.dump)
+
     def __repr__(self):
         return ('<cinderlib.%s object %s on backend %s>' %
                 (type(self).__name__,
@@ -211,6 +222,7 @@ class Volume(NamedObject):
         'admin_metadata': {},
         'glance_metadata': {},
     }
+    LAZY_PROPERTIES = ['snapshots', 'connections']
 
     _ignore_keys = ('id', 'volume_attachment', 'snapshots')
 
@@ -498,6 +510,7 @@ class Connection(Object):
       }
     """
     OVO_CLASS = volume_cmd.objects.VolumeAttachment
+    LAZY_PROPERTIES = ['volume']
 
     @classmethod
     def connect(cls, volume, connector, **kwargs):
@@ -753,6 +766,7 @@ class Snapshot(NamedObject):
         'status': 'creating',
         'metadata': {},
     }
+    LAZY_PROPERTIES = ['volume']
 
     def __init__(self, volume, **kwargs):
         self._volume = volume

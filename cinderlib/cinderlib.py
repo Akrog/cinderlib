@@ -243,9 +243,8 @@ class Backend(object):
             return self._driver_cfg
         return {'volume_backend_name': self._driver_cfg['volume_backend_name']}
 
-    @property
-    def json(self):
-        result = [volume.json for volume in self.volumes]
+    def _serialize(self, property_name):
+        result = [getattr(volume, property_name) for volume in self.volumes]
         # We only need to output the full backend configuration once
         if self.output_all_backend_info:
             backend = {'volume_backend_name': self.id}
@@ -256,8 +255,20 @@ class Backend(object):
                 'volumes': result}
 
     @property
+    def json(self):
+        return self._serialize('json')
+
+    @property
+    def dump(self):
+        return self._serialize('dump')
+
+    @property
     def jsons(self):
         return json_lib.dumps(self.json)
+
+    @property
+    def dumps(self):
+        return json_lib.dumps(self.dump)
 
     @classmethod
     def load(cls, json_src):

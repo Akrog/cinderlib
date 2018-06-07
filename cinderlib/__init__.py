@@ -17,6 +17,8 @@ KeyValue = objects.KeyValue
 load = serialization.load
 json = serialization.json
 jsons = serialization.jsons
+dump = serialization.dump
+dumps = serialization.dumps
 
 setup = cinderlib.setup
 Backend = cinderlib.Backend
