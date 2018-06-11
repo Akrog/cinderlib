@@ -147,6 +147,25 @@ class Object(object):
     def jsons(self):
         return json_lib.dumps(self.json)
 
+    def _only_ovo_data(self, ovo):
+        if isinstance(ovo, dict):
+            if 'versioned_object.data' in ovo:
+                value = ovo['versioned_object.data']
+                if ['objects'] == value.keys():
+                    return self._only_ovo_data(value['objects'])
+                key = ovo['versioned_object.name'].lower()
+                return {key: self._only_ovo_data(value)}
+
+            for key in ovo.keys():
+                ovo[key] = self._only_ovo_data(ovo[key])
+        if isinstance(ovo, list) and ovo:
+            return [self._only_ovo_data(e) for e in ovo]
+        return ovo
+
+    def to_dict(self):
+        json_ovo = self.json
+        return self._only_ovo_data(json_ovo['ovo'])
+
     @property
     def dump(self):
         # Make sure we load lazy loading properties
