@@ -59,7 +59,11 @@ Other methods
 All other methods available in the *Snapshot* class will be explained in their
 relevant sections:
 
-- `load` will be explained together with `json` and `jsons` properties in the
-  :doc:`serialization` section.
+- `load` will be explained together with `json`, `jsons`, `dump`, and `dumps`
+  properties, and the `to_dict` method in the :doc:`serialization` section.
+
+- `refresh` will reload the volume from the metadata storage and reload any
+  lazy loadable property that has already been loaded.  Covered in the
+  :doc:`serialization` and :doc:`tracking` sections.
 
 - `create_volume` method has been covered in the :doc:`volumes` section.

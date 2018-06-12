@@ -535,11 +535,9 @@ class Connection(Object, LazyVolumeAttr):
     instance so we use the connection_info to store everything.
 
     We'll have a dictionary:
-      {
-        'conn': connection info
-        'connector': connector dictionary
-        'device': result of connect_volume
-      }
+        {'conn': connection info
+         'connector': connector dictionary
+         'device': result of connect_volume}
     """
     OVO_CLASS = volume_cmd.objects.VolumeAttachment
 

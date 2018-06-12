@@ -20,11 +20,11 @@ The method definition is as follows:
 .. code-block:: python
 
     @classmethod
-    def global_setup(cls, file_locks_path=None, root_helpers='sudo',
+    def global_setup(cls, file_locks_path=None, root_helper='sudo',
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
-                     project_id=None, user_id=None, **log_params):
-
+                     project_id=None, user_id=None, persistence_config=None,
+                     **log_params):
 
 The meaning of the library's configuration options are:
 
@@ -121,6 +121,34 @@ in the resource.  Using this this parameter we can define, using a string, an
 identifier for the user of cinderlib to be recorded in the resources.
 
 Defaults to `cinderlib`.
+
+persistence_config
+------------------
+
+*Cinderlib* operation requires data persistence, which is achieved with a
+metadata persistence plugin mechanism.
+
+The project includes 2 types of plugins providing 3 different persistence
+solutions and more can be used via Python modules and passing custom plugins in
+this parameter.
+
+Users of the *cinderlib* library must decide which plugin best fits their needs
+and pass the appropriate configuration in a dictionary as the
+`persistence_config` parameter.
+
+The parameter is optional, and defaults to the `memory` plugin, but if it's
+passed it must always include the `storage` key specifying the plugin to be
+used.  All other key-value pairs must be valid parameters for the specific
+plugin.
+
+Value for the `storage` key can be a string identifying a plugin registered
+using Python entrypoints, an instance of a class inheriting from
+`PersistenceDriverBase`, or a `PersistenceDriverBase` class.
+
+Information regarding available plugins, their description and parameters, and
+different ways to initialize the persistence can be found in the
+:doc:`metadata` section.
+
 
 other keyword arguments
 -----------------------

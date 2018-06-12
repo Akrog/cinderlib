@@ -38,5 +38,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-.. _GIGO: https://en.wikipedia.org/wiki/Garbage_in,_garbage_out

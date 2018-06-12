@@ -20,14 +20,8 @@ list to keep track of the most relevant topics.
 - Encryption
 - Support name and description attributes in Volume and Snapshot
 - Verify multiattach support
-- Use created_at, updated_at, and deleted_at fields
-- Use a list instead of a set in Volume.snapshots so they are ordered, which
-  can be useful to restore to the latest snapshot as well as to delete them in
-  reverse order of creation.
 - Revert to snapshot support.
 - Add documentation to connect remote host.  `use_multipath_for_image_xfer` and
   the `enforce_multipath_for_image_xfer` options.
 - Complete internals documentation.
 - Document the code.
-- Should *cinderlib* support working with sqlite instead of just RAM?
-- Improve serialization to limit following of references to other objects.

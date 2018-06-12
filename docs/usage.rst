@@ -33,10 +33,11 @@ other hosts or we can do a local *Attachment* of the volume which will retrieve
 required local connection information of this host, create a *Connection* on
 the storage to this host, and then do the local *Attachment*.
 
-Given that Cinder drivers are not stateless, *cinderlib* cannot be either and
-will keep track of all the resources in memory while the library is running,
-and provides a JSON serialization mechanism to support saving and restoring the
-state of all the resources.
+Given that *Cinder* drivers are not stateless, *cinderlib* cannot be either.
+That's why we have a metadata persistence plugin mechanism to provide different
+ways to store resource states.  Currently we have memory and database plugins.
+Users can store the data wherever they want using the JSON serialization
+mechanism or with a custom metadata plugin.
 
 For extended information on these topics please refer to their specific
 sections.
@@ -51,5 +52,4 @@ sections.
     topics/connections
     topics/serialization
     topics/tracking
-
-.. _GIGO: https://en.wikipedia.org/wiki/Garbage_in,_garbage_out
+    topics/metadata

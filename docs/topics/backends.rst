@@ -18,14 +18,15 @@ backend to a single pool.
     related to *cinderlib* and can be deleted using the vendor's management
     tool.
 
-    If you try the library with another storage array I would appreciate a note
-    on the library version, Cinder release, and results of your testing.
+    If you try the library with another storage array I would love to hear
+    about your results, the library version, and configuration used (masked
+    IPs, passwords, and users).
 
 Initialization
 --------------
 
 Before we can have access to an storage array we have to initialize the
-*Backend*, which only has one parameter defined and all other parameters are
+*Backend*, which only has one defined parameter and all other parameters are
 not defined in the method prototype:
 
 .. code-block:: python
@@ -37,13 +38,13 @@ There are two arguments that we'll always have to pass on the initialization,
 one is the `volume_backend_name` that is the unique identifier that *cinderlib*
 will use to identify this specific driver initialization, so we'll need to make
 sure not to repeat the name, and the other one is the `volume_driver` which
-refers to the Python path that points to the *Cinder* driver.
+refers to the Python namespace that points to the *Cinder* driver.
 
-All other *Backend* configuration options are free-form keyword arguments
-because each driver and storage array requires different information to
-operate, some require credentials to be passed as parameters while others use a
-file, some require the control address as well as the data addresses. This
-behavior is inherited from the *Cinder* project.
+All other *Backend* configuration options are free-form keyword arguments.
+Each driver and storage array requires different information to operate, some
+require credentials to be passed as parameters, while others use a file, and
+some require the control address as well as the data addresses. This behavior
+is inherited from the *Cinder* project.
 
 To find what configuration options are available and which ones are compulsory
 the best is going to the Vendor's documentation or to the `OpenStack's Cinder
@@ -59,7 +60,7 @@ volume driver configuration documentation`_.
     Python library dependencies are usually documented in the
     `driver-requirements.txt file
     <https://github.com/openstack/cinder/blob/master/driver-requirements.txt>`_,
-    as for the CLI required tools we'll have to check in the Vendor's
+    as for the CLI required tools, we'll have to check in the Vendor's
     documentation.
 
 Cinder only supports using one driver at a time, as each process only handles
@@ -186,14 +187,10 @@ Here's an example of the output from the LVM *Backend* with refresh:
 Available volumes
 -----------------
 
-Just like the *Backend* class keeps track of all the *Backend* instances in the
-`backends` class attribute, each *Backend* instance will keep track of all the
-volumes that have been created in the *Backend*, regardless of how they have
-been created, and still exist in the storage backend.  So all volumes that have
-been successfully deleted will no longer be there.
-
-We can access the *Volumes* with the `volumes` instance attribute of type
-`set`.
+The *Backend* class keeps track of all the *Backend* instances in the
+`backends` class attribute, and each *Backend* instance has a `volumes`
+property that will return a `list` all the existing volumes in the specific
+backend.  Deleted volumes will no longer be present.
 
 So assuming that we have an `lvm` variable holding an initialized *Backend*
 instance where we have created volumes we could list them with:
@@ -203,14 +200,19 @@ instance where we have created volumes we could list them with:
     for vol in lvm.volumes:
         print('Volume %s has %s GB' % (vol.id, vol.size))
 
+Attribute `volumes` is a lazy loadable property that will only update its value
+on the first access.  More information about lazy loadable properties can be
+found in the :doc:`tracking` section.  For more information on data loading
+please refer to the :doc:`metadata` section.
+
 .. note::
 
-    The `volumes` attribute variable will only hold the volumes that are known
-    to this *cinderlib*, be it because we have created the volumes in this run
-    or because we have loaded them from a serialized source.
+    The `volumes` property does not query the storage array for a list of
+    existing volumes.   It queries the metadata storage to see what volumes
+    have been created using *cinderlib* and return this list.  This means that
+    we won't be able to manage pre-existing resources from the backend, and we
+    won't notice when a resource is removed directly on the backend.
 
-    This should not be confused with a listing of the volumes within the pool
-    we are using.
 
 Attributes
 ----------
@@ -239,8 +241,9 @@ Other methods
 All other methods available in the *Backend* class will be explained in their
 relevant sections:
 
-- `load` and `load_backend` will be explained together with `json` and `jsons`
-  properties in the :doc:`serialization` section.
+- `load` and `load_backend` will be explained together with `json`, `jsons`,
+  `dump`, `dumps` properties and `to_dict` method in the :doc:`serialization`
+  section.
 
 - `create_volume` method will be covered in the :doc:`volumes` section.
 

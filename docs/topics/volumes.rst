@@ -83,8 +83,7 @@ Cloning to a greater size would look like this:
 On volume creation we can pass additional parameters like a `name` or a
 `description`, but these will be irrelevant for the actual volume creation and
 will only be useful to us to easily identify our volumes or to store additional
-information.  This information is not written in the storage backend and lives
-in RAM.
+information.
 
 Available fields with their types can be found in `Cinder's Volume OVO
 definition
@@ -216,8 +215,12 @@ Other methods
 All other methods available in the *Volume* class will be explained in their
 relevant sections:
 
-- `load` will be explained together with `json` and `jsons` properties in the
-  :doc:`serialization` section.
+- `load` will be explained together with `json`, `jsons`, `dump`, and `dumps`
+  properties, and the `to_dict` method in the :doc:`serialization` section.
+
+- `refresh` will reload the volume from the metadata storage and reload any
+  lazy loadable property that has already been loaded.  Covered in the
+  :doc:`serialization` and :doc:`tracking` sections.
 
 - `create_snapshot` method will be covered in the :doc:`snapshots` section
   together with the `snapshots` attribute.

@@ -38,6 +38,7 @@ drivers that have been manually tested are (I'll try to test more):
 - LVM
 - XtremIO
 - Kaminario
+- RBD
 
 If you try the library with another storage array I would appreciate a note on
 the library version, Cinder release, and results of your testing.
@@ -48,8 +49,6 @@ Features
 * Use a Cinder driver without running a DBMS, Message broker, or Cinder
   service.
 * Using multiple simultaneous drivers on the same program.
-* Stateless: Support full serialization of objects and context to json or
-  string so the state can be restored.
 * Basic operations support:
   - Create volume
   - Delete volume
@@ -65,6 +64,10 @@ Features
   - Validate connector
 * Code should support multiple concurrent connections to a volume, though this
   has not yet been tested.
+* Metadata persistence plugin:
+  - Stateless: Caller stores JSON serialization.
+  - Database: Metadata is stored in a database: MySQL, PostgreSQL, SQLite...
+  - Custom plugin: Metadata is stored in another metadata storage.
 
 Demo
 ----
@@ -131,7 +134,7 @@ control LVM and do the attach) and execute:
 
     # Save the whole environment to a file
     with open('cinderlib-test.txt', 'w') as f:
-        f.write(cl.jsons())
+        f.write(cl.dumps())
 
     # Exit python
     exit()
@@ -154,7 +157,7 @@ And now let's run a new `python` interpreter and clean things up:
 
     # Get the whole environment up
     with open('cinderlib-test.txt') as f:
-        backends = cl.load(f.read())
+        backends = cl.load(f.read(), save=True)
 
     # Get the volume reference we loaded from file and detach
     vol = list(backends[0].volumes)[0]

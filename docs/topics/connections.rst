@@ -6,7 +6,7 @@ When talking about attaching a *Cinder* volume there are three steps that must
 happen before the volume is available in the host:
 
 1. Retrieve connection information from the host where the volume is going to
-   be attached.  Here we would be getting iSCSI initiator name and such
+   be attached.  Here we would be getting iSCSI initiator name, IP, and similar
    information.
 
 2. Use the connection information from step 1 and make the volume accessible to
@@ -15,36 +15,39 @@ happen before the volume is available in the host:
 
 3. Attaching the volume to the host using the data retrieved on step 2.
 
-If we are running *cinderlib* and doing the attach in the same host then all
-steps will be done in the same host, but in many cases you may want to manage
-the storage backend in one host and attach to another, in such cases steps 1
-and 3 will happen in the host that needs the attach and step 2 on the node
-running *cinderlib*.
+If we are running *cinderlib* and doing the attach in the same host, then all
+steps will be done in the same host.  But in many cases you may want to manage
+the storage backend in one host and attach a volume in another.  In such cases,
+steps 1 and 3 will happen in the host that needs the attach and step 2 on the
+node running *cinderlib*.
 
-In *OpenStack* there is a connection library called *OS-Brick* that is used by
-*Cinder* and *Nova* (the compute component) to perform steps 1 and 3, but in
-*cinderlib* we are not currently using it directly and instead we are
-leveraging *Cinder*'s helper methods to do this for us.
-
-This adds an unnecessary dependency on specific *Cinder* code that will be
-removed in the future and also limits the usefulness of the library to abstract
-*OS-Brick* library usage from *cinderlib* users.
+Projects in *OpenStack* use the *OS-Brick* library to manage the attaching and
+detaching processes.  Same thing happens in *cinderlib*.  The only difference
+is that there are some connection types that are handled by the hypervisors in
+*OpenStack*, so we need some alternative code in *cinderlib* to manage them.
 
 *Connection* objects' most interesting attributes are:
 
-- `connected`: Boolean that reflects if the connection is complete
+- `connected`: Boolean that reflects if the connection is complete.
 
 - `volume`: The *Volume* to which this instance holds the connection
   information.
 
-- `connector`: Connection information from the host that is attaching. Such as
-  it's hostname, IP address, initiator name, etc.
+- `protocol`: String with the connection protocol for this volume, ie: `iscsi`,
+  `rbd`.
 
-- `connection_info`: The connection information the host requires to do the
-  attachment, such as IP address, target name, credentials, etc.
+- `connector_info`: Dictionary with the connection information from the host
+  that is attaching.  Such as it's hostname, IP address, initiator name, etc.
 
-- `attach_info`: If we have done a local attachment this will hold all the
-  attachment information.
+- `conn_info`: Dictionary with the connection information the host requires to
+  do the attachment, such as IP address, target name, credentials, etc.
+
+- `device`: If we have done a local attachment this will hold a dictionary with
+  all the attachment information, such as the `path`, the `type`, the
+  `scsi_wwn`, etc.
+
+- `path`: String with the path of the system device that has been created when
+  the volume was attached.
 
 
 Local attach
@@ -139,3 +142,16 @@ Multi attach
 
 Multi attach support has just been added to *Cinder* in the Queens cycle, and
 it's not currently supported by *cinderlib*.
+
+Other methods
+-------------
+
+All other methods available in the *Snapshot* class will be explained in their
+relevant sections:
+
+- `load` will be explained together with `json`, `jsons`, `dump`, and `dumps`
+  properties, and the `to_dict` method in the :doc:`serialization` section.
+
+- `refresh` will reload the volume from the metadata storage and reload any
+  lazy loadable property that has already been loaded.  Covered in the
+  :doc:`serialization` and :doc:`tracking` sections.

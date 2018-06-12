@@ -33,6 +33,7 @@ functional tests, are:
 - LVM
 - XtremIO
 - Kaminario
+- RBD
 
 Features
 --------
@@ -42,6 +43,7 @@ Features
 * Using multiple simultaneous drivers on the same program.
 * Stateless: Support full serialization of objects and context to JSON or
   string so the state can be restored.
+* Metadata persistence plugin mechanism.
 * Basic operations support:
 
   - Create volume
