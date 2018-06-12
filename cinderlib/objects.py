@@ -373,7 +373,7 @@ class Volume(NamedObject):
             # TODO: raise with the vol info
             raise
         finally:
-            self.persistence.set_volume(self)
+            self.save()
 
     def delete(self):
         # Some backends delete existing snapshots while others leave them
@@ -401,7 +401,7 @@ class Volume(NamedObject):
             # TODO: raise with the vol info
             raise
         finally:
-            self.persistence.set_volume(self)
+            self.save()
 
     def clone(self, **new_vol_attrs):
         new_vol_attrs['source_vol_id'] = self.id
@@ -417,7 +417,7 @@ class Volume(NamedObject):
             # TODO: raise with the new volume info
             raise
         finally:
-            self.persistence.set_volume(new_vol)
+            new_vol.save()
         return new_vol
 
     def create_snapshot(self, name='', description='', **kwargs):
@@ -466,7 +466,7 @@ class Volume(NamedObject):
                                                          connector_dict)
         if model_update:
             self._ovo.update(model_update)
-            self.persistence.set_volume(self)
+            self.save()
 
         try:
             conn = Connection.connect(self, connector_dict, **ovo_fields)
@@ -475,7 +475,7 @@ class Volume(NamedObject):
                 ovo_conns = getattr(self._ovo, CONNECTIONS_OVO_FIELD).objects
                 ovo_conns.append(conn._ovo)
             self._ovo.status = 'in-use'
-            self.persistence.set_volume(self)
+            self.save()
         except Exception:
             self._remove_export()
             # TODO: Improve raised exception
@@ -491,7 +491,7 @@ class Volume(NamedObject):
 
         if not self.connections:
             self._ovo.status = 'available'
-            self.persistence.set_volume(self)
+            self.save()
 
     def disconnect(self, connection, force=False):
         connection._disconnect(force)
@@ -513,6 +513,9 @@ class Volume(NamedObject):
             last_self.connections
         vars(self).clear()
         vars(self).update(vars(last_self))
+
+    def save(self):
+        self.persistence.set_volume(self)
 
 
 class Connection(Object, LazyVolumeAttr):
@@ -542,7 +545,7 @@ class Connection(Object, LazyVolumeAttr):
                    connection_info={'conn': conn_info},
                    **kwargs)
         conn.connector_info = connector
-        cls.persistence.set_connection(conn)
+        conn.save()
         return conn
 
     @staticmethod
@@ -684,7 +687,7 @@ class Connection(Object, LazyVolumeAttr):
 
     def device_attached(self, device):
         self.device = device
-        self.persistence.set_connection(self)
+        self.save()
 
     def attach(self):
         device = self.connector.connect_volume(self.conn_info['data'])
@@ -715,7 +718,7 @@ class Connection(Object, LazyVolumeAttr):
             if self._volume:
                 self.volume.local_attach = None
             self.device = None
-            self.persistence.set_connection(self)
+            self.save()
             self._connector = None
 
         if exc and not ignore_errors:
@@ -738,6 +741,9 @@ class Connection(Object, LazyVolumeAttr):
     @backend.setter
     def backend(self, value):
         self._backend = value
+
+    def save(self):
+        self.persistence.set_connection(self)
 
 
 class Snapshot(NamedObject, LazyVolumeAttr):
@@ -797,7 +803,7 @@ class Snapshot(NamedObject, LazyVolumeAttr):
             # TODO: raise with the vol info
             raise
         finally:
-            self.persistence.set_snapshot(self)
+            self.save()
 
     def delete(self):
         try:
@@ -830,7 +836,7 @@ class Snapshot(NamedObject, LazyVolumeAttr):
             # TODO: raise with the new volume info
             raise
         finally:
-            self.persistence.set_volume(new_vol)
+            new_vol.save()
 
         return new_vol
 
@@ -844,6 +850,9 @@ class Snapshot(NamedObject, LazyVolumeAttr):
     @classmethod
     def get_by_name(cls, snapshot_name):
         return cls.persistence.get_snapshots(snapshot_name=snapshot_name)
+
+    def save(self):
+        self.persistence.set_snapshot(self)
 
 
 setup = Object.setup
