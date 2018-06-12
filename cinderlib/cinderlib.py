@@ -281,11 +281,11 @@ class Backend(object):
         return json_lib.dumps(self.dump)
 
     @classmethod
-    def load(cls, json_src):
+    def load(cls, json_src, save=False):
         backend = Backend.load_backend(json_src['backend'])
         volumes = json_src.get('volumes')
         if volumes:
-            backend._volumes = [objects.Volume.load(v) for v in volumes]
+            backend._volumes = [objects.Volume.load(v, save) for v in volumes]
         return backend
 
     @classmethod

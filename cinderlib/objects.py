@@ -184,11 +184,11 @@ class Object(object):
                  self.backend.id))
 
     @classmethod
-    def load(cls, json_src):
+    def load(cls, json_src, save=False):
         backend = cls.backend_class.load_backend(json_src['backend'])
         ovo = cinder_base_ovo.CinderObject.obj_from_primitive(json_src['ovo'],
                                                               cls.CONTEXT)
-        return cls._load(backend, ovo)
+        return cls._load(backend, ovo, save=save)
 
     @staticmethod
     def new_uuid():
@@ -358,8 +358,18 @@ class Volume(NamedObject):
             self._connections = None
 
     @classmethod
-    def _load(cls, backend, ovo):
+    def _load(cls, backend, ovo, save=None):
         vol = cls(backend, __ovo=ovo)
+        if save:
+            vol.save()
+            if vol._snapshots:
+                for s in vol._snapshots:
+                    s.obj_reset_changes()
+                    s.save()
+            if vol._connections:
+                for c in vol._connections:
+                    c.obj_reset_changes()
+                    c.save()
         return vol
 
     def create(self):
@@ -661,9 +671,11 @@ class Connection(Object, LazyVolumeAttr):
         return bool(self.conn_info)
 
     @classmethod
-    def _load(cls, backend, ovo, volume=None):
+    def _load(cls, backend, ovo, volume=None, save=False):
         # We let the __init__ method set the _volume if exists
         conn = cls(backend, __ovo=ovo, volume=volume)
+        if save:
+            conn.save()
         # Restore circular reference only if we have all the elements
         if conn._volume and conn._volume._connections is not None:
             conn._volume._connections.append(conn)
@@ -782,9 +794,11 @@ class Snapshot(NamedObject, LazyVolumeAttr):
         LazyVolumeAttr.__init__(self, volume)
 
     @classmethod
-    def _load(cls, backend, ovo, volume=None):
+    def _load(cls, backend, ovo, volume=None, save=False):
         # We let the __init__ method set the _volume if exists
         snap = cls(volume, backend=backend, __ovo=ovo)
+        if save:
+            snap.save()
         # Restore circular reference only if we have all the elements
         if snap._volume and snap._volume._snapshots is not None:
             snap._volume._snapshots.append(snap)

@@ -96,6 +96,16 @@ class PersistenceDriverBase(object):
                   if not isinstance(resource.fields[key], fields.ObjectField)}
         return result
 
+    def get_fields(self, resource):
+        result = {
+            key: getattr(resource._ovo, key)
+            for key in resource.fields
+            if (resource._ovo.obj_attr_is_set(key) and
+                key not in getattr(resource, 'obj_extra_fields', []) and not
+                isinstance(resource.fields[key], fields.ObjectField))
+        }
+        return result
+
 
 class DB(object):
     """Replacement for DB access methods.

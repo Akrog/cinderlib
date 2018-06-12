@@ -23,6 +23,7 @@ from cinder.db import migration
 from cinder.db.sqlalchemy import api as sqla_api
 from cinder.db.sqlalchemy import models
 from cinder import objects as cinder_objs
+from oslo_db import exception
 from oslo_log import log
 
 from cinderlib import objects
@@ -112,13 +113,18 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
     def set_volume(self, volume):
         changed = self.get_changed_fields(volume)
         if not changed:
-            return
+            changed = self.get_fields(volume)
 
         # Create
         if 'id' in changed:
             LOG.debug('set_volume creating %s', changed)
-            self.db.volume_create(objects.CONTEXT, changed)
-        else:
+            try:
+                self.db.volume_create(objects.CONTEXT, changed)
+                changed = None
+            except exception.DBDuplicateEntry:
+                del changed['id']
+
+        if changed:
             LOG.debug('set_volume updating %s', changed)
             self.db.volume_update(objects.CONTEXT, volume.id, changed)
         super(DBPersistence, self).set_volume(volume)
@@ -126,13 +132,18 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
     def set_snapshot(self, snapshot):
         changed = self.get_changed_fields(snapshot)
         if not changed:
-            return
+            changed = self.get_fields(snapshot)
 
         # Create
         if 'id' in changed:
             LOG.debug('set_snapshot creating %s', changed)
-            self.db.snapshot_create(objects.CONTEXT, changed)
-        else:
+            try:
+                self.db.snapshot_create(objects.CONTEXT, changed)
+                changed = None
+            except exception.DBDuplicateEntry:
+                del changed['id']
+
+        if changed:
             LOG.debug('set_snapshot updating %s', changed)
             self.db.snapshot_update(objects.CONTEXT, snapshot.id, changed)
         super(DBPersistence, self).set_snapshot(snapshot)
@@ -140,7 +151,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
     def set_connection(self, connection):
         changed = self.get_changed_fields(connection)
         if not changed:
-            return
+            changed = self.get_fields(connection)
 
         if 'connection_info' in changed:
             connection._convert_connection_info_to_db_format(changed)
@@ -148,8 +159,13 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         # Create
         if 'id' in changed:
             LOG.debug('set_connection creating %s', changed)
-            sqla_api.volume_attach(objects.CONTEXT, changed)
-        else:
+            try:
+                sqla_api.volume_attach(objects.CONTEXT, changed)
+                changed = None
+            except exception.DBDuplicateEntry:
+                del changed['id']
+
+        if changed:
             LOG.debug('set_connection updating %s', changed)
             self.db.volume_attachment_update(objects.CONTEXT, connection.id,
                                              changed)
