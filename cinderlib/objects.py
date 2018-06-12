@@ -246,6 +246,13 @@ class LazyVolumeAttr(object):
         self._volume = value
         self._ovo.volume = value._ovo
 
+    def refresh(self):
+        last_self = self.get_by_id(self.id)
+        if self._volume is not None:
+            last_self.volume
+        vars(self).clear()
+        vars(self).update(vars(last_self))
+
 
 class Volume(NamedObject):
     OVO_CLASS = volume_cmd.objects.Volume
@@ -497,6 +504,15 @@ class Volume(NamedObject):
 
     def _remove_export(self):
         self.backend.driver.remove_export(self._context, self._ovo)
+
+    def refresh(self):
+        last_self = self.get_by_id(self.id)
+        if self._snapshots is not None:
+            last_self.snapshots
+        if self._connections is not None:
+            last_self.connections
+        vars(self).clear()
+        vars(self).update(vars(last_self))
 
 
 class Connection(Object, LazyVolumeAttr):

@@ -299,6 +299,11 @@ class Backend(object):
 
         raise Exception('Backend not present in system or json.')
 
+    def refresh(self):
+        if self._volumes is not None:
+            self._volumes = None
+            self.volumes
+
 
 setup = Backend.global_setup
 # Used by serialization.load
