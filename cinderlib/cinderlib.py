@@ -129,6 +129,17 @@ class Backend(object):
         self.driver.validate_connector(connector_dict)
 
     @classmethod
+    def set_persistence(cls, persistence_config):
+        if not hasattr(cls, 'project_id'):
+            raise Exception('set_persistence can only be called after '
+                            'cinderlib has been configured')
+        cls.persistence = persistence.setup(persistence_config)
+        objects.setup(cls.persistence, Backend, cls.project_id, cls.user_id,
+                      cls.non_uuid_ids)
+        for backend in cls.backends.values():
+            backend.driver.db = cls.persistence.db
+
+    @classmethod
     def global_setup(cls, file_locks_path=None, root_helper='sudo',
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
@@ -142,16 +153,17 @@ class Backend(object):
         volume_cmd.CONF._ConfigOpts__cache = MyDict()
 
         cls.root_helper = root_helper
+        cls.project_id = project_id
+        cls.user_id = user_id
+        cls.non_uuid_ids = non_uuid_ids
 
         volume_cmd.CONF.version = volume_cmd.version.version_string()
         volume_cmd.CONF.register_opt(
             configuration.cfg.StrOpt('stateless_cinder'),
             group=configuration.SHARED_CONF_GROUP)
 
-        cls.persistence = persistence.setup(persistence_config)
+        cls.set_persistence(persistence_config)
         serialization.setup(cls)
-        objects.setup(cls.persistence, Backend, project_id, user_id,
-                      non_uuid_ids)
 
         cls._set_logging(disable_logs, **log_params)
         cls._set_priv_helper(root_helper)

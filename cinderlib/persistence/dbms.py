@@ -50,6 +50,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         migrate_logger = logging.getLogger('migrate')
         migrate_logger.setLevel(logging.WARNING)
 
+        self._clear_facade()
         self.db_instance = db_api.oslo_db_api.DBAPI.from_config(
             conf=volume_cmd.CONF, backend_mapping=db_api._BACKEND_MAPPING,
             lazy=True)
@@ -57,6 +58,14 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         migration.db_sync()
         self._create_key_value_table()
         super(DBPersistence, self).__init__()
+
+    def _clear_facade(self):
+        # This is for Pike
+        if hasattr(sqla_api, '_FACADE'):
+            sqla_api._FACADE = None
+        # This is for Queens and Rocky (untested)
+        elif hasattr(sqla_api, 'configure'):
+            sqla_api.configure(volume_cmd.CONF)
 
     def _create_key_value_table(self):
         models.BASE.metadata.create_all(sqla_api.get_engine(),
