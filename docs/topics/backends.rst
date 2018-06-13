@@ -115,6 +115,8 @@ Kaminario
         volume_backend_name='kaminario_iscsi',
     )
 
+For more configurations refer to the :doc:`../validated_backends` section.
+
 Available Backends
 ------------------
 
