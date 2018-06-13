@@ -200,3 +200,30 @@ the location of our configuration file via environmental variable
 
 As can be seen each test will have a meaningful name ending in the name of the
 backend we have provided via the `volume_backend_name` key in the YAML file.
+
+
+Reporting results
+-----------------
+
+Once you have run the tests, it's time to report the results so they can be
+included in the :doc:`validated_backends` section.
+
+To help others use the same backend and help us track how each storage driver
+was tested please include the following information in your report:
+
+- *Cinderlib* version.
+- Storage Array: What hardware and firmware version were used.
+- Connection type tested: iSCSI, FC, RBD, etc.
+- Dependencies/Requirements for the backend: Packages, Python libraries,
+  configuration files...
+- Contents of the YAML file with usernames, passwords, and IPs appropriately
+  masked.
+- *Cinder* release: If a release other than *Pike* has been used.
+- Additional notes: Limitations or anything worth mentioning.
+
+To report the results of the tests please create an `issue on the project`_
+with the information mentioned above and include any errors you encountered if
+you did encounter any.
+
+
+.. _issue on the project: https://github.com/Akrog/cinderlib/issues/new
