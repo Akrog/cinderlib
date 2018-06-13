@@ -24,6 +24,7 @@ able to manage your storage.
 
    introduction
    installation
+   validated_backends
    usage
    contributing
    validating_backends

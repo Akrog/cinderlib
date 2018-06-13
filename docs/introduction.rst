@@ -30,10 +30,10 @@ Due to the limited access to Cinder backends and time constraints the list of
 drivers that have been manually tested, and using the existing limited
 functional tests, are:
 
-- LVM
-- XtremIO
-- Kaminario
-- RBD
+- LVM with LIO
+- Dell EMC XtremIO
+- Kaminario K2
+- Ceph/RBD
 
 Features
 --------

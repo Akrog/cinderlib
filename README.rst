@@ -35,10 +35,10 @@ information on the current limitations please refer to the documentation.
 Due to the limited access to Cinder backends and time constraints the list of
 drivers that have been manually tested are (I'll try to test more):
 
-- LVM
-- XtremIO
-- Kaminario
-- RBD
+- LVM with LIO
+- Dell EMC XtremIO
+- Kaminario K2
+- Ceph/RBD
 
 If you try the library with another storage array I would appreciate a note on
 the library version, Cinder release, and results of your testing.
