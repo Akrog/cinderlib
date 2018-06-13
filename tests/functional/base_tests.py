@@ -96,7 +96,9 @@ class BaseFunctTestCase(unittest2.TestCase):
             # snapshots that are still there and then the volume.
             # NOTE(geguileo): Don't use volumes and snapshots iterables since
             # they are modified when deleting.
-            for vol in list(backend.volumes):
+            # NOTE(geguileo): Cleanup in reverse because RBD driver cannot
+            # delete a snapshot that has a volume created from it.
+            for vol in list(backend.volumes)[::-1]:
                 for snap in list(vol.snapshots):
                     try:
                         snap.delete()
