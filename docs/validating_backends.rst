@@ -73,6 +73,14 @@ being mandatory.
   is also necessary if we've installed a binary in the `.tox/py27/bin`
   directory.
 
+- `size_precision`: Integer value describing how much precision we must use
+  when comparing volume sizes.  Due to cylinder sizes some storage arrays don't
+  abide 100% to the requested size of the volume.  With this option we can
+  define how many decimals will be correct when testing sizes.  A value of 2
+  means that the backend could create a 1.0015869140625GB volume when we
+  request a 1GB volume and the tests wouldn't fail.  Default is zero, which for
+  us means that it must be perfect or it will fail.
+
 - `backends`: This is a list of dictionaries each with the configuration
   parameters that are configured in the `cinder.conf` file in Cinder.
 

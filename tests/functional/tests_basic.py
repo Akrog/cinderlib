@@ -58,7 +58,7 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
     def test_create_volume(self):
         vol = self._create_vol(self.backend)
         vol_size = self._get_vol_size(vol)
-        self.assertEqual(vol.size, vol_size)
+        self.assertSize(vol.size, vol_size)
         # We are not testing delete, so leave the deletion to the tearDown
 
     def test_create_delete_volume(self):
@@ -151,14 +151,14 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
         vol = self._create_vol(self.backend)
         original_size = vol.size
         result_original_size = self._get_vol_size(vol)
-        self.assertEqual(original_size, result_original_size)
+        self.assertSize(original_size, result_original_size)
 
         new_size = vol.size + 1
         vol.extend(new_size)
 
         self.assertEqual(new_size, vol.size)
         result_new_size = self._get_vol_size(vol)
-        self.assertEqual(new_size, result_new_size)
+        self.assertSize(new_size, result_new_size)
 
     def test_clone(self):
         vol = self._create_vol(self.backend)

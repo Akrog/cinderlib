@@ -48,7 +48,7 @@ def test_all_backends(cls):
 
 
 class BaseFunctTestCase(unittest2.TestCase):
-    DEFAULTS = {'logs': False, 'venv_sudo': False}
+    DEFAULTS = {'logs': False, 'venv_sudo': False, 'size_precision': 0}
     FNULL = open(os.devnull, 'w')
     CONFIG_FILE = os.environ.get('CL_FTEST_CFG', 'tests/functional/lvm.yaml')
     tests_config = None
@@ -84,6 +84,8 @@ class BaseFunctTestCase(unittest2.TestCase):
 
         # Set current backend, by default is the first
         cls.backend = cls.backends[0]
+
+        cls.size_precision = config['size_precision']
 
     @classmethod
     def tearDownClass(cls):
@@ -216,3 +218,10 @@ class BaseFunctTestCase(unittest2.TestCase):
 
     def _pools_info(self, stats):
         return stats.get('pools', [stats])
+
+    def assertSize(self, expected_size, actual_size):
+        if self.size_precision:
+            self.assertAlmostEqual(expected_size, actual_size,
+                                   self.size_precision)
+        else:
+            self.assertEqual(expected_size, actual_size)
