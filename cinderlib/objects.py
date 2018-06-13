@@ -298,6 +298,7 @@ class Volume(NamedObject):
 
         super(Volume, self).__init__(backend_or_vol, **kwargs)
         self._populate_data()
+        self.local_attach = None
 
     @property
     def snapshots(self):
@@ -378,6 +379,7 @@ class Volume(NamedObject):
             self._ovo.status = 'available'
             if model_update:
                 self._ovo.update(model_update)
+            self.backend._volume_created(self)
         except Exception:
             self._ovo.status = 'error'
             # TODO: raise with the vol info
@@ -422,6 +424,7 @@ class Volume(NamedObject):
             new_vol.status = 'available'
             if model_update:
                 new_vol.update(model_update)
+            self.backend._volume_created(new_vol)
         except Exception:
             new_vol.status = 'error'
             # TODO: raise with the new volume info
@@ -843,6 +846,7 @@ class Snapshot(NamedObject, LazyVolumeAttr):
             new_vol._ovo.status = 'available'
             if model_update:
                 new_vol._ovo.update(model_update)
+            self.backend._volume_created(new_vol)
         except Exception:
             new_vol._ovo.status = 'error'
             # TODO: raise with the new volume info

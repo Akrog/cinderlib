@@ -124,6 +124,10 @@ class Backend(object):
                     del self._volumes[i]
                     break
 
+    def _volume_created(self, volume):
+        if self._volumes is not None:
+            self._volumes.append(volume)
+
     def validate_connector(self, connector_dict):
         """Raise exception if missing info for volume's connect call."""
         self.driver.validate_connector(connector_dict)
