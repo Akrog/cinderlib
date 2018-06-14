@@ -3,11 +3,14 @@
 
 import setuptools
 
-with open('readme_prefix.rst') as readme_file:
+with open('README.rst') as readme_file:
     readme = readme_file.read()
 
-with open('readme_postfix.rst') as readme_file:
-    readme += readme_file.read()
+# Remove the demo for the PyPi package
+start = readme.index('Demo\n----')
+end = readme.index('Example\n-------')
+readme = readme[:start] + readme[end:]
+
 
 with open('HISTORY.rst') as history_file:
     history = history_file.read()

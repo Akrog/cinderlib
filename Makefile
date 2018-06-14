@@ -80,7 +80,7 @@ register: ## register package in pypi
 	python setup.py register --repository pypi
 
 test-package:
-	python setup.py sdist
+	python setup.py check -r -s
 
 test-release: clean
 	python setup.py sdist upload --repository pypitest
