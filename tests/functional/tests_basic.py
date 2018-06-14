@@ -30,6 +30,11 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
             self.assertIn('free_capacity_gb', pool_info)
             self.assertIn('total_capacity_gb', pool_info)
 
+    def _volumes_in_pools(self, pools_info):
+        if not any('total_volumes' in p for p in pools_info):
+            return None
+        return sum(p.get('total_volumes', 0) for p in pools_info)
+
     def test_stats_with_creation(self):
         # This test can fail if we are don't have exclusive usage of the
         # storage pool used in the tests or if the specific driver does not
@@ -42,10 +47,12 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
         initial_pools_info = self._pools_info(initial_stats)
         new_pools_info = self._pools_info(new_stats)
 
-        initial_volumes = sum(p.get('total_volumes', 0)
-                              for p in initial_pools_info)
-        new_volumes = sum(p.get('total_volumes', 1) for p in new_pools_info)
-        self.assertEqual(initial_volumes + 1, new_volumes)
+        initial_volumes = self._volumes_in_pools(initial_pools_info)
+        new_volumes = self._volumes_in_pools(new_pools_info)
+
+        # If the backend is reporting the number of volumes, check them
+        if initial_volumes is not None:
+            self.assertEqual(initial_volumes + 1, new_volumes)
 
         initial_size = sum(p.get('allocated_capacity_gb',
                                  p.get('provisioned_capacity_gb', 0))
