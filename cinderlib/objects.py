@@ -563,21 +563,25 @@ class Connection(Object, LazyVolumeAttr):
     def _is_multipathed_conn(kwargs):
         # Priority:
         #  - kwargs['use_multipath']
-        #  - Detect from kwargs['connnection_info']['conn']
-        #  - multipath configuration in connector from OVO in kwargs
+        #  - Multipath in connector_dict in kwargs or _ovo
         #  - Detect from connection_info data from OVO in kwargs
 
         if 'use_multipath' in kwargs:
             return kwargs['use_multipath']
 
-        conn_info = (kwargs.get('connection_info') or {}).get('conn', {})
-        if not conn_info and '__ovo' in kwargs:
-            ovo = kwargs['__ovo'].connection_info or {}
-            if 'multipath' in ovo.get('connector', {}):
-                return ovo['connector'].get('multipath', False)
-            conn_info = ovo.get('conn', {})
+        connector = kwargs.get('connector') or {}
+        conn_info = kwargs.get('connection_info') or {}
 
-        # If multipathed not defined autodetect it
+        if '__ovo' in kwargs:
+            ovo = kwargs['__ovo']
+            conn_info = conn_info or ovo.connection_info or {}
+            connector = connector or ovo.connection_info.get('connector') or {}
+
+        if 'multipath' in connector:
+            return connector['multipath']
+
+        # If multipathed not defined autodetect based on connection info
+        conn_info = conn_info['conn']['data']
         iscsi_mp = 'target_iqns' in conn_info and 'target_portals' in conn_info
         fc_mp = not isinstance(conn_info.get('target_wwn', ''),
                                six.string_types)
