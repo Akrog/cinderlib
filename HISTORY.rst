@@ -2,7 +2,7 @@
 History
 =======
 
-0.2.0 (2018-xx-xx)
+0.2.0 (2018-06-14)
 ------------------
 
 - Features:
@@ -10,11 +10,14 @@ History
   - Modify fields on connect method.
   - Support setting custom root_helper.
   - Setting default project_id and user_id.
-  - Persistence plugin mechanism
+  - Metadata persistence plugin mechanism
   - DB persistence plugin
   - No longer dependent on Cinder's attach/detach code
   - Add device_attached method to update volume on attaching node
   - Support attaching/detaching RBD volumes
+  - Support changing persistence plugin after initialization
+  - Add saving and refreshing object's metadata
+  - Add dump, dumps methods
 
 - Bug fixes:
 
@@ -29,6 +32,10 @@ History
   - Connection fields not being set
   - DeviceUnavailable exception
   - Multipath settings after persistence retrieval
+  - Fix PyPi package created tests module
+  - Fix connector without multipath info
+  - Always call create_export and remove_export
+  - iSCSI unlinking on disconnect
 
 0.1.0 (2017-11-03)
 ------------------
