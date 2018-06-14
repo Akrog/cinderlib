@@ -39,6 +39,7 @@ drivers that have been manually tested are (I'll try to test more):
 - Dell EMC XtremIO
 - Kaminario K2
 - Ceph/RBD
+- NetApp SolidFire
 
 If you try the library with another storage array I would appreciate a note on
 the library version, Cinder release, and results of your testing.

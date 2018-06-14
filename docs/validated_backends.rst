@@ -19,6 +19,7 @@ Currently the following backends have been verified:
 - `Ceph`_
 - Dell EMC `XtremIO`_
 - `Kaminario`_ K2
+- NetApp `SolidFire`_
 
 
 LVM
@@ -136,3 +137,34 @@ Kaminario
          san_login: user
          san_password: toomanysecrets
          use_multipath_for_image_xfer: true
+
+
+SolidFire
+---------
+
+- *Cinderlib version*: v0.1.0 with `later patch`_
+- *Cinder release*: *Pike*
+- *Storage*: NetApp SolidFire
+- *Versions*: Unknown
+- *Connection type*: iSCSI
+- *Requirements*: None
+- *Tested by*: John Griffith (jgriffith/j-griffith)
+
+*Configuration*:
+
+.. code-block:: YAML
+
+   logs: false
+   venv_sudo: true
+   backends:
+       - volume_backend_name: solidfire
+         volume_driver: cinder.volume.drivers.solidfire.SolidFireDriver
+         san_ip: 192.168.1.4
+         san_login: admin
+         san_password: admin_password
+         sf_allow_template_caching = false
+         image_volume_cache_enabled = True
+         volume_clear = zero
+
+
+.. _later patch: https://github.com/Akrog/cinderlib/commit/7dde24e6ccdff19de330fe826b5d449831fff2a6
