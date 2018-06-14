@@ -219,6 +219,8 @@ VMAX
 
 *Configuration* for *Queens* and *Rocky*:
 
+.. code-block:: YAML
+
    venv_sudo: false
    size_precision: 2
    backends:
