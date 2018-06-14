@@ -34,6 +34,7 @@ functional tests, are:
 - Dell EMC XtremIO
 - Kaminario K2
 - Ceph/RBD
+- NetApp SolidFire
 
 Features
 --------
