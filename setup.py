@@ -3,8 +3,11 @@
 
 import setuptools
 
-with open('README.rst') as readme_file:
+with open('readme_prefix.rst') as readme_file:
     readme = readme_file.read()
+
+with open('readme_postfix.rst') as readme_file:
+    readme += readme_file.read()
 
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
@@ -59,7 +62,7 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['tmp', 'tests*']),
     include_package_data=False,
     install_requires=requirements,
-    extras_requires=extras,
+    extras_require=extras,
     license="Apache Software License 2.0",
     zip_safe=False,
     keywords='cinderlib',

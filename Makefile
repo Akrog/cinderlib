@@ -26,7 +26,7 @@ BROWSER := python -c "$$BROWSER_PYSCRIPT"
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
+clean: clean-build clean-pyc ## remove all build, coverage and Python artifacts
 
 
 clean-build: ## remove build artifacts
@@ -51,16 +51,16 @@ lint: ## check style with flake8
 	flake8 cinderlib tests
 
 test: ## run tests quickly with the default Python
-	
+
 		python setup.py test
 
 test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	
+
 		coverage run --source cinderlib setup.py test
-	
+
 		coverage report -m
 		coverage html
 		$(BROWSER) htmlcov/index.html
@@ -78,6 +78,13 @@ servedocs: docs ## compile the docs watching for changes
 
 register: ## register package in pypi
 	python setup.py register --repository pypi
+
+test-package:
+	python setup.py sdist
+
+test-release: clean
+	python setup.py sdist upload --repository pypitest
+	python setup.py bdist_wheel upload --repository pypitest
 
 release: clean ## package and upload a release
 	python setup.py sdist upload --repository pypi
