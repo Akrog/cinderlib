@@ -32,6 +32,7 @@ functional tests, are:
 
 - LVM with LIO
 - Dell EMC XtremIO
+- Dell EMC VMAX
 - Kaminario K2
 - Ceph/RBD
 - NetApp SolidFire

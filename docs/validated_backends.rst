@@ -18,6 +18,7 @@ Currently the following backends have been verified:
 - `LVM`_ with LIO
 - `Ceph`_
 - Dell EMC `XtremIO`_
+- Dell EMC `VMAX`_
 - `Kaminario`_ K2
 - NetApp `SolidFire`_
 
@@ -165,6 +166,73 @@ SolidFire
          sf_allow_template_caching = false
          image_volume_cache_enabled = True
          volume_clear = zero
+
+
+VMAX
+----
+
+- *Cinderlib version*: v0.1.0
+- *Cinder release*: Pike, Queens, Rocky
+- *Storage*: Dell EMC VMAX
+- *Versions*: Unknown
+- *Connection type*: iSCSI
+- *Requirements*:
+
+  - On *Pike* we need file `/etc/cinder/cinder_dell_emc_config.xml`.
+
+- *Tested by*: Helen Walsh (walshh)
+
+*Configuration* for *Pike*:
+
+- *Cinderlib* functional test configuration:
+
+  .. code-block:: YAML
+
+     logs: false
+     venv_sudo: false
+     size_precision: 2
+     backends:
+         - image_volume_cache_enabled: True
+           volume_clear: zero
+           volume_backend_name: VMAX_ISCSI_DIAMOND
+           volume_driver: cinder.volume.drivers.dell_emc.vmax.iscsi.VMAXISCSIDrive
+
+- Contents of file `/etc/cinder/cinder_dell_emc_config.xml`:
+
+  .. code-block:: XML
+
+     <?xml version="1.0" encoding="UTF-8"?>
+     <EMC>
+       <RestServerIp>w.x.y.z</RestServerIp>
+       <RestServerPort>8443</RestServerPort>
+       <RestUserName>username</RestUserName>
+       <RestPassword>toomanysecrets</RestPassword>
+       <Array>000197800128</Array>
+       <PortGroups>
+         <PortGroup>os-iscsi-pg</PortGroup>
+       </PortGroups>
+       <SRP>SRP_1</SRP>
+       <ServiceLevel>Diamond</ServiceLevel>
+       <Workload>none</Workload>
+       <SSLVerify>/opt/stack/localhost.domain.com.pem</SSLVerify>
+     </EMC>
+
+*Configuration* for *Queens* and *Rocky*:
+
+   venv_sudo: false
+   size_precision: 2
+   backends:
+       - image_volume_cache_enabled: True
+         volume_clear: zero
+         volume_backend_name: VMAX_ISCSI_DIAMOND
+         volume_driver: cinder.volume.drivers.dell_emc.vmax.iscsi.VMAXISCSIDriver
+         san_ip: w.x.y.z
+         san_rest_port: 8443
+         san_login: user
+         san_password: toomanysecrets
+         vmax_srp: SRP_1
+         vmax_array: 000197800128
+         vmax_port_groups: [os-iscsi-pg]
 
 
 .. _later patch: https://github.com/Akrog/cinderlib/commit/7dde24e6ccdff19de330fe826b5d449831fff2a6
