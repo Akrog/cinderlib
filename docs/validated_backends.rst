@@ -64,8 +64,11 @@ Ceph
 - *Tested by*: Gorka Eguileor (geguileo/akrog)
 - *Notes*:
 
-  - Driver implementation requires `rbd_keyring_conf` to be in `/etc/ceph/` and
-    have the name `ceph.client.$rbd_user.conf`.
+  - If we don't define the `keyring` configuration parameter (must use an
+    absolute path) in our `rbd_ceph_conf` to point to our `rbd_keyring_conf`
+    file, we'll need the `rbd_keyring_conf` to be in `/etc/ceph/`.
+  - `rbd_keyring_confg` must always be present and must follow the naming
+     convention of `$cluster.client.$rbd_user.conf`.
   - Current driver cannot delete a snapshot if there's a dependent (a volume
     created from it exists).
 
