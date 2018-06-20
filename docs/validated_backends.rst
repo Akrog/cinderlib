@@ -94,11 +94,11 @@ XtremIO
 - *Cinder release*: *Pike*
 - *Storage*: Dell EMC XtremIO
 - *Versions*: v4.0.15-20_hotfix_3
-- *Connection type*: iSCSI
+- *Connection type*: iSCSI, FC
 - *Requirements*: None
 - *Tested by*: Gorka Eguileor (geguileo/akrog)
 
-*Configuration*:
+*Configuration* for iSCSI:
 
 .. code-block:: YAML
 
@@ -107,6 +107,21 @@ XtremIO
    backends:
        - volume_backend_name: xtremio
          volume_driver: cinder.volume.drivers.dell_emc.xtremio.XtremIOISCSIDriver
+         xtremio_cluster_name: CLUSTER_NAME
+         use_multipath_for_image_xfer: true
+         san_ip: w.x.y.z
+         san_login: user
+         san_password: toomanysecrets
+
+*Configuration* for FC:
+
+.. code-block:: YAML
+
+   logs: false
+   venv_sudo: false
+   backends:
+       - volume_backend_name: xtremio
+         volume_driver: cinder.volume.drivers.dell_emc.xtremio.XtremIOFCDriver
          xtremio_cluster_name: CLUSTER_NAME
          use_multipath_for_image_xfer: true
          san_ip: w.x.y.z
