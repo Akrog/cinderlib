@@ -77,7 +77,7 @@ example of how to save everything to the database:
    vol = lvm.create_volume(1)
 
    with open('lvm.txt', 'w') as f:
-       f.write(lvm.dumps())
+       f.write(lvm.dumps)
 
 And how to load it back:
 

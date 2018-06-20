@@ -53,6 +53,9 @@ Besides these resource specific properties, we also have their equivalent
 methods at the library level that will operate on all the *Backends* present in
 the application.
 
+.. attention:: On the objects, these are properties (`volume.dumps`), but on
+   the library, these are methods (`cinderlib.dumps()`).
+
 .. note::
 
     We don't have to worry about circular references, such as a *Volume* with a
@@ -75,10 +78,10 @@ In a similar way we can also store a single *Backend* or a single *Volume*:
     vol = lvm.create_volume(size=1)
 
     with open('lvm.txt', 'w') as f:
-        f.write(lvm.dumps())
+        f.write(lvm.dumps)
 
     with open('vol.txt', 'w') as f:
-        f.write(vol.dumps())
+        f.write(vol.dumps)
 
 We must remember that `dump` and `dumps` triggers loading of properties that
 are not already loaded.  Any lazy loadable property that was already loaded
@@ -158,17 +161,17 @@ specific object's `load` method.
 To dict
 -------
 
-Serialization methods presented earlier are meant to store all the data and
-allow reuse of that data when using drivers of different releases.  So it will
-include all required information to be backward compatible when moving from
-release N *Cinder* drivers to release N+1 drivers.
+Serialization properties and methos presented earlier are meant to store all
+the data and allow reuse of that data when using drivers of different releases.
+So it will include all required information to be backward compatible when
+moving from release N *Cinder* drivers to release N+1 drivers.
 
 There will be times when we'll just want to have a nice dictionary
 representation of a resource, be it to log it, to display it while debugging,
 or to send it from our controller application to the node where we are going to
 be doing the attachment.  For these specific cases all resources, except the
-*Backend* have a `to_dict` method that will only return the relevant data from
-the resources.
+*Backend* have a `to_dict` method (not property this time) that will only
+return the relevant data from the resources.
 
 
 Backend configuration
