@@ -170,10 +170,9 @@ class BaseFunctTestCase(unittest2.TestCase):
         try:
             while True:
                 try:
-                    result = self._root_execute('lsblk', '-o', 'SIZE', '-J',
+                    result = self._root_execute('lsblk', '-o', 'SIZE',
                                                 '-b', vol.local_attach.path)
-                    data = json.loads(result)
-                    size_bytes = data['blockdevices'][0]['size']
+                    size_bytes = result.split()[1]
                     return float(size_bytes) / 1024.0 / 1024.0 / 1024.0
                 # NOTE(geguileo): We can't catch subprocess.CalledProcessError
                 # because somehow we get an instance from a different
