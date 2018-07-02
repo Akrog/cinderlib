@@ -149,6 +149,22 @@ Information regarding available plugins, their description and parameters, and
 different ways to initialize the persistence can be found in the
 :doc:`metadata` section.
 
+fail_on_missing_backend
+-----------------------
+
+To facilitate operations on resources, *Cinderlib* stores a reference to the
+instance of the *backend* in most of the in-memory objects.
+
+When deserializing or retrieving objects from the metadata persistence storage
+*cinderlib* tries to properly set this *backend* instance based on the
+*backends* currently in memory.
+
+Trying to load an object without having instantiated the *backend* will result
+in an error, unless we define `fail_on_missing_backend` to `False` on
+initialization.
+
+This is useful if we are sharing the metadata persistence storage and we want
+to load a volume that is already connected to do just the attachment.
 
 other keyword arguments
 -----------------------

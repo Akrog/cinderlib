@@ -9,6 +9,7 @@ History
 
   - Use NOS-Brick to setup OS-Brick for non OpenStack usage.
   - Can setup persistence directly to use key-value storage.
+  - Support loading objects without configured backend.
 
 0.2.1 (2018-06-14)
 ------------------

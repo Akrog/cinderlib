@@ -4,7 +4,7 @@ Metadata Persistence
 
 *Cinder* drivers are not stateless, and the interface between the *Cinder* core
 code and the drivers allows them to return data that can be stored in the
-database.  Some driver, that have not been updated, are even accessing the
+database.  Some drivers, that have not been updated, are even accessing the
 database directly.
 
 Because *cinderlib* uses the *Cinder* drivers as they are, it cannot be

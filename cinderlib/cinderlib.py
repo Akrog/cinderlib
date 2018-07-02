@@ -141,11 +141,12 @@ class Backend(object):
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
                      project_id=None, user_id=None, persistence_config=None,
-                     **log_params):
+                     fail_on_missing_backend=True, **log_params):
         # Global setup can only be set once
         if cls.global_initialization:
             raise Exception('Already setup')
 
+        cls.fail_on_missing_backend = fail_on_missing_backend
         cls.root_helper = root_helper
         cls.project_id = project_id
         cls.user_id = user_id

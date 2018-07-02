@@ -68,7 +68,13 @@ class Object(object):
 
     def _get_backend(self, backend_name_or_obj):
         if isinstance(backend_name_or_obj, six.string_types):
-            return self.backend_class.backends[backend_name_or_obj]
+            try:
+                return self.backend_class.backends[backend_name_or_obj]
+            except KeyError:
+                if self.backend_class.fail_on_missing_backend:
+                    raise
+                return backend_name_or_obj
+
         return backend_name_or_obj
 
     def __init__(self, backend, **fields_data):
@@ -178,10 +184,11 @@ class Object(object):
         return json_lib.dumps(self.dump)
 
     def __repr__(self):
+        backend = self.backend
+        if isinstance(self.backend, self.backend_class):
+            backend = backend.id
         return ('<cinderlib.%s object %s on backend %s>' %
-                (type(self).__name__,
-                 self.id,
-                 self.backend.id))
+                (type(self).__name__, self.id, backend))
 
     @classmethod
     def load(cls, json_src, save=False):
@@ -275,7 +282,7 @@ class Volume(NamedObject):
         # Accept backend name for convenience
         if isinstance(backend_or_vol, six.string_types):
             kwargs.setdefault(BACKEND_NAME_VOLUME_FIELD, backend_or_vol)
-            backend_or_vol = self.backend_class.backends[backend_or_vol]
+            backend_or_vol = self._get_backend(backend_or_vol)
         elif isinstance(backend_or_vol, self.backend_class):
             kwargs.setdefault(BACKEND_NAME_VOLUME_FIELD, backend_or_vol.id)
         # Accept a volume as additional source data
