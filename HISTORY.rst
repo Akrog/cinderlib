@@ -2,6 +2,13 @@
 History
 =======
 
+0.2.2 (2018-07-xx)
+------------------
+
+- Features:
+
+  - Use NOS-Brick to setup OS-Brick for non OpenStack usage.
+
 0.2.1 (2018-06-14)
 ------------------
 

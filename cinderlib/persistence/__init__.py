@@ -45,6 +45,7 @@ def setup(config):
         config = {}
     else:
         config = config.copy()
+
     # Default configuration is using memory storage
     storage = config.pop('storage', None) or DEFAULT_STORAGE
     if isinstance(storage, base.PersistenceDriverBase):

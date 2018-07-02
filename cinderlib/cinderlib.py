@@ -14,7 +14,6 @@
 #    under the License.
 
 from __future__ import absolute_import
-import functools
 import json as json_lib
 import logging
 import os
@@ -27,14 +26,8 @@ from cinder import coordination
 from cinder.cmd import volume as volume_cmd
 from cinder import utils
 from cinder.volume import configuration
+import nos_brick
 from oslo_utils import importutils
-
-from os_brick import exception as brick_exception
-from os_brick.initiator import connectors
-from os_brick.privileged import rootwrap
-from oslo_concurrency import processutils as putils
-from oslo_utils import fileutils
-
 import requests
 
 from cinderlib import objects
@@ -161,12 +154,13 @@ class Backend(object):
         cls.user_id = user_id
         cls.non_uuid_ids = non_uuid_ids
 
+        cls.set_persistence(persistence_config)
+
         volume_cmd.CONF.version = volume_cmd.version.version_string()
         volume_cmd.CONF.register_opt(
             configuration.cfg.StrOpt('stateless_cinder'),
             group=configuration.SHARED_CONF_GROUP)
 
-        cls.set_persistence(persistence_config)
         serialization.setup(cls)
 
         cls._set_logging(disable_logs, **log_params)
@@ -204,57 +198,10 @@ class Backend(object):
         volume_cmd.logging.setup(volume_cmd.CONF, 'cinder')
         volume_cmd.python_logging.captureWarnings(True)
 
-    @staticmethod
-    def unlink_root(*links, **kwargs):
-        no_errors = kwargs.get('no_errors', False)
-        raise_at_end = kwargs.get('raise_at_end', False)
-        exc = brick_exception.ExceptionChainer()
-        catch_exception = no_errors or raise_at_end
-        for link in links:
-            with exc.context(catch_exception, 'Unlink failed for %s', link):
-                putils.execute('unlink', link, run_as_root=True,
-                               root_helper=Backend.root_helper)
-        if not no_errors and raise_at_end and exc:
-            raise exc
-
     @classmethod
     def _set_priv_helper(cls, root_helper):
         utils.get_root_helper = lambda: root_helper
-        volume_cmd.priv_context.init(root_helper=[root_helper])
-
-        existing_bgcp = utils.connector.get_connector_properties
-        existing_bcp = utils.connector.InitiatorConnector.factory
-
-        def my_bgcp(*args, **kwargs):
-            if len(args):
-                args = list(args)
-                args[0] = root_helper
-            else:
-                kwargs['root_helper'] = root_helper
-            kwargs['execute'] = rootwrap.custom_execute
-            return existing_bgcp(*args, **kwargs)
-
-        def my_bgc(protocol, *args, **kwargs):
-            if len(args):
-                # args is a tuple and we cannot do assignments
-                args = list(args)
-                args[0] = root_helper
-            else:
-                kwargs['root_helper'] = root_helper
-            kwargs['execute'] = rootwrap.custom_execute
-
-            # OS-Brick's implementation for RBD is not good enough for us
-            if protocol == 'rbd':
-                factory = RBDConnector
-            else:
-                factory = functools.partial(existing_bcp, protocol)
-
-            return factory(*args, **kwargs)
-
-        utils.connector.get_connector_properties = my_bgcp
-        utils.connector.InitiatorConnector.factory = staticmethod(my_bgc)
-        if hasattr(rootwrap, 'unlink_root'):
-            rootwrap.unlink_root = cls.unlink_root
+        nos_brick.init(root_helper)
 
     @classmethod
     def _set_coordinator(cls, file_locks_path):
@@ -340,73 +287,3 @@ class MyDict(dict):
     """
     def clear(self):
         pass
-
-
-class RBDConnector(connectors.rbd.RBDConnector):
-    """"Connector class to attach/detach RBD volumes locally.
-
-    OS-Brick's implementation covers only 2 cases:
-
-    - Local attachment on controller node.
-    - Returning a file object on non controller nodes.
-
-    We need a third one, local attachment on non controller node.
-    """
-    def connect_volume(self, connection_properties):
-        # NOTE(e0ne): sanity check if ceph-common is installed.
-        try:
-            self._execute('which', 'rbd')
-        except putils.ProcessExecutionError:
-            msg = 'ceph-common package not installed'
-            raise brick_exception.BrickException(msg)
-
-        # Extract connection parameters and generate config file
-        try:
-            user = connection_properties['auth_username']
-            pool, volume = connection_properties['name'].split('/')
-            cluster_name = connection_properties.get('cluster_name')
-            monitor_ips = connection_properties.get('hosts')
-            monitor_ports = connection_properties.get('ports')
-            keyring = connection_properties.get('keyring')
-        except IndexError:
-            msg = 'Malformed connection properties'
-            raise brick_exception.BrickException(msg)
-
-        conf = self._create_ceph_conf(monitor_ips, monitor_ports,
-                                      str(cluster_name), user,
-                                      keyring)
-
-        # Map RBD volume if it's not already mapped
-        rbd_dev_path = self.get_rbd_device_name(pool, volume)
-        if (not os.path.islink(rbd_dev_path) or
-                not os.path.exists(os.path.realpath(rbd_dev_path))):
-            cmd = ['rbd', 'map', volume, '--pool', pool, '--conf', conf]
-            cmd += self._get_rbd_args(connection_properties)
-            self._execute(*cmd, root_helper=self._root_helper,
-                          run_as_root=True)
-
-        return {'path': os.path.realpath(rbd_dev_path),
-                'conf': conf,
-                'type': 'block'}
-
-    def check_valid_device(self, path, run_as_root=True):
-        """Verify an existing RBD handle is connected and valid."""
-        try:
-            self._execute('dd', 'if=' + path, 'of=/dev/null', 'bs=4096',
-                          'count=1', root_helper=self._root_helper,
-                          run_as_root=True)
-        except putils.ProcessExecutionError:
-            return False
-        return True
-
-    def disconnect_volume(self, connection_properties, device_info,
-                          force=False, ignore_errors=False):
-
-        pool, volume = connection_properties['name'].split('/')
-        conf_file = device_info['conf']
-        dev_name = self.get_rbd_device_name(pool, volume)
-        cmd = ['rbd', 'unmap', dev_name, '--conf', conf_file]
-        cmd += self._get_rbd_args(connection_properties)
-        self._execute(*cmd, root_helper=self._root_helper,
-                      run_as_root=True)
-        fileutils.delete_if_exists(conf_file)

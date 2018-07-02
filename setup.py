@@ -17,6 +17,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'cinder>=11.0<12.0',
+    'nos-brick',
 ]
 
 test_requirements = [
