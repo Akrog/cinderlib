@@ -62,8 +62,32 @@ you through the process.
 .. _pip: https://pip.pypa.io
 .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
 
-From source
+Container
+_________
+
+There is a docker image, in case you prefer trying the library without any
+installation.
+
+The image is called `akrog/cinderlib:stable`, and we can run Python dirrectly
+with:
+
+.. code-block:: console
+
+   $ docker run --name=cinderlib --privileged --net=host -v /etc/iscsi:/etc/iscsi -v /dev:/dev -it akrog/cinderlib:stable python
+
+
+Latest code
 -----------
+
+Container
+_________
+
+A Docker image is automatically built on every commit to the *master* branch.
+Running a Python shell with the latest *cinderlib* code is as simple as:
+
+.. code-block:: console
+
+   $ docker run --name=cinderlib --privileged --net=host -v /etc/iscsi:/etc/iscsi -v /dev:/dev -it akrog/cinderlib python
 
 Drivers
 _______

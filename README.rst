@@ -89,7 +89,15 @@ Example
 The following example uses CentOS 7 and the Cinder LVM driver, which should be
 the easiest to setup and test.
 
-First you need to setup your system:
+First you need to setup your system.
+
+You can either use a container:
+
+.. code-block:: shell
+
+   $ docker run --name=cinderlib --privileged --net=host -v /etc/iscsi:/etc/iscsi -v /dev:/dev -it akrog/cinderlib python
+
+Or install things on baremetal/VM:
 
 .. code-block:: shell
 
