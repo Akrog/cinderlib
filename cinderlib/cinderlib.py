@@ -146,9 +146,6 @@ class Backend(object):
         if cls.global_initialization:
             raise Exception('Already setup')
 
-        # Prevent driver dynamic loading clearing configuration options
-        volume_cmd.CONF._ConfigOpts__cache = MyDict()
-
         cls.root_helper = root_helper
         cls.project_id = project_id
         cls.user_id = user_id
@@ -273,17 +270,3 @@ setup = Backend.global_setup
 objects.Backend = Backend
 # Needed if we use serialization.load before initializing cinderlib
 objects.Object.backend_class = Backend
-
-
-class MyDict(dict):
-    """Custom non clearable dictionary.
-
-    Required to overcome the nature of oslo.config where configuration comes
-    from files and command line input.
-
-    Using this dictionary we can load from memory everything and it won't clear
-    things when we dynamically load a driver and the driver has new
-    configuration options.
-    """
-    def clear(self):
-        pass

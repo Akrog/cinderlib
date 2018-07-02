@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 import inspect
 
+from cinder.cmd import volume as volume_cmd
 import six
 from stevedore import driver
 
@@ -23,6 +24,20 @@ from cinderlib.persistence import base
 
 
 DEFAULT_STORAGE = 'memory'
+
+
+class MyDict(dict):
+    """Custom non clearable dictionary.
+
+    Required to overcome the nature of oslo.config where configuration comes
+    from files and command line input.
+
+    Using this dictionary we can load from memory everything and it won't clear
+    things when we dynamically load a driver and the driver has new
+    configuration options.
+    """
+    def clear(self):
+        pass
 
 
 def setup(config):
@@ -45,6 +60,9 @@ def setup(config):
         config = {}
     else:
         config = config.copy()
+
+    # Prevent driver dynamic loading clearing configuration options
+    volume_cmd.CONF._ConfigOpts__cache = MyDict()
 
     # Default configuration is using memory storage
     storage = config.pop('storage', None) or DEFAULT_STORAGE
