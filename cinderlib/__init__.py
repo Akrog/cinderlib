@@ -5,7 +5,7 @@ from cinderlib import objects
 
 __author__ = """Gorka Eguileor"""
 __email__ = 'geguileo@redhat.com'
-__version__ = '0.2.1'
+__version__ = '0.2.2.dev0'
 
 DEFAULT_PROJECT_ID = objects.DEFAULT_PROJECT_ID
 DEFAULT_USER_ID = objects.DEFAULT_USER_ID
