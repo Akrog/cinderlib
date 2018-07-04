@@ -35,7 +35,8 @@ sys.path.insert(0, project_root)
 import modulefaker
 
 for module in ('cinder', 'os_brick', 'oslo_utils', 'oslo_versionedobjects',
-               'oslo_concurrency', 'oslo_log', 'stevedore'):
+               'oslo_concurrency', 'oslo_log', 'stevedore', 'oslo_db',
+               'cinder.db.sqlalchemy'):
     modulefaker.fake_module(module)
 
 
