@@ -11,6 +11,12 @@ Cinder Library
 .. image:: https://img.shields.io/pypi/pyversions/cinderlib.svg
    :target: https://pypi.python.org/pypi/cinderlib
 
+.. image:: https://img.shields.io/docker/build/akrog/cinderlib.svg
+   :target: https://hub.docker.com/r/akrog/cinderlib
+
+.. image:: https://img.shields.io/docker/automated/akrog/cinderlib.svg
+   :target: https://hub.docker.com/r/akrog/cinderlib/builds
+
 .. image:: https://img.shields.io/:license-apache-blue.svg
    :target: http://www.apache.org/licenses/LICENSE-2.0
 
