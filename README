@@ -27,8 +27,7 @@ drivers that have been manually tested are (I'll try to test more):
 If you try the library with another storage array I would appreciate a note on
 the library version, Cinder release, and results of your testing.
 
-Features
---------
+## Features
 
 * Use a Cinder driver without running a DBMS, Message broker, or Cinder
   service.
