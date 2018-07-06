@@ -11,6 +11,10 @@ History
   - Can setup persistence directly to use key-value storage.
   - Support loading objects without configured backend.
 
+- Bug fixes:
+
+  - Workaround for Python 2 getaddrinfo bug
+
 0.2.1 (2018-06-14)
 ------------------
 

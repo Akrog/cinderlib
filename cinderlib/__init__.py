@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from cinderlib import workarounds  # noqa
 from cinderlib import cinderlib
 from cinderlib import serialization
 from cinderlib import objects
