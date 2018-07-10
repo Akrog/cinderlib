@@ -58,7 +58,7 @@ class PersistenceDriverBase(object):
     def set_connection(self, connection):
         self.reset_change_tracker(connection)
 
-    def set_key_value(self, key, value):
+    def set_key_value(self, key_value):
         raise NotImplemented()
 
     def delete_volume(self, volume):
