@@ -111,10 +111,13 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
     def _get_kv(self, key=None, session=None):
         session = session or sqla_api.get_session()
         query = session.query(KeyValue)
-        if key is None:
-            return query.all()
-        res = query.filter_by(key=key).first()
-        return [res] if res else []
+        if key is not None:
+            query = query.filter_by(key=key)
+        res = query.all()
+        # If we want to use the result as an ORM
+        if session:
+            return res
+        return [objects.KeyValue(r.key, r.value) for r in res]
 
     def get_key_values(self, key=None):
         return self._get_kv(key)
