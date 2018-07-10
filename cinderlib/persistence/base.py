@@ -59,7 +59,7 @@ class PersistenceDriverBase(object):
         self.reset_change_tracker(connection)
 
     def set_key_value(self, key_value):
-        raise NotImplemented()
+        pass
 
     def delete_volume(self, volume):
         self._set_deleted(volume)
@@ -74,7 +74,7 @@ class PersistenceDriverBase(object):
         self.reset_change_tracker(connection)
 
     def delete_key_value(self, key):
-        raise NotImplemented()
+        pass
 
     def _set_deleted(self, resource):
         resource._ovo.deleted = True
