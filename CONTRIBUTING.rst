@@ -192,7 +192,8 @@ Now we can use this LVM backend in *cinderlib*:
 
 .. code-block:: python
 
-    import cinderlib
+    import cinderlib as cl
+    from pprint import pprint as pp
 
     lvm = cl.Backend(volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
                      volume_group='cinder-volumes',
@@ -200,7 +201,7 @@ Now we can use this LVM backend in *cinderlib*:
                      iscsi_helper='lioadm',
                      volume_backend_name='lvm_iscsi')
 
-    vol = lvm.volume_create(size=1)
+    vol = lvm.create_volume(size=1)
 
     attach = vol.attach()
     pp('Volume %s attached to %s' % (vol.id, attach.path))
