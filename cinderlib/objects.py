@@ -151,7 +151,7 @@ class Object(object):
 
     @property
     def jsons(self):
-        return json_lib.dumps(self.json)
+        return json_lib.dumps(self.json, separators=(',', ':'))
 
     def _only_ovo_data(self, ovo):
         if isinstance(ovo, dict):
@@ -181,7 +181,7 @@ class Object(object):
 
     @property
     def dumps(self):
-        return json_lib.dumps(self.dump)
+        return json_lib.dumps(self.dump, separators=(',', ':'))
 
     def __repr__(self):
         backend = self.backend

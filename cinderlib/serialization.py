@@ -167,7 +167,7 @@ def json():
 
 def jsons():
     """Convert to a Json string everything we have in this system."""
-    return json_lib.dumps(json())
+    return json_lib.dumps(json(), separators=(',', ':'))
 
 
 def dump():
@@ -177,4 +177,4 @@ def dump():
 
 def dumps():
     """Convert to a Json string everything we have in this system."""
-    return json_lib.dumps(dump())
+    return json_lib.dumps(dump(), separators=(',', ':'))
