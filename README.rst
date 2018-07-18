@@ -108,6 +108,7 @@ Or install things on baremetal/VM:
 .. code-block:: shell
 
     $ sudo yum install -y centos-release-openstack-pike
+    $ test -f  /etc/yum/vars/contentdir || echo centos >/etc/yum/vars/contentdir
     $ sudo yum install -y openstack-cinder targetcli python-pip
     $ sudo pip install cinderlib
     $ sudo dd if=/dev/zero of=cinder-volumes bs=1048576 seek=22527 count=1
