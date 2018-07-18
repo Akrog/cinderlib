@@ -180,11 +180,17 @@ And now let's run a new `python` interpreter and clean things up:
         backends = cl.load(f.read(), save=True)
 
     # Get the volume reference we loaded from file and detach
-    vol = list(backends[0].volumes)[0]
-    vol.detach()
+    vol = backends[0].volumes[0]
+    # Volume no longer knows that the attach is local, so we cannot do
+    # vol.detach(), but we can get the connection and use it.
+    conn = vol.connections[0]
+    # Physically detach the volume from the node
+    conn.detach()
+    # Unmap the volume and remove the export
+    conn.disconnect()
 
     # Get the snapshot and delete it
-    snap = list(vol.snapshots)[0]
+    snap = vol.snapshots[0]
     snap.delete()
 
     # Finally delete the volume
