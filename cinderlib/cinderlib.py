@@ -258,7 +258,10 @@ class Backend(object):
         if len(backend_data) > 1:
             return cls(**backend_data)
 
-        raise Exception('Backend not present in system or json.')
+        if cls.fail_on_missing_backend:
+            raise Exception('Backend not present in system or json.')
+
+        return backend_name
 
     def refresh(self):
         if self._volumes is not None:

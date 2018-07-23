@@ -73,8 +73,6 @@ class Object(object):
             except KeyError:
                 if self.backend_class.fail_on_missing_backend:
                     raise
-                return backend_name_or_obj
-
         return backend_name_or_obj
 
     def __init__(self, backend, **fields_data):
@@ -146,7 +144,7 @@ class Object(object):
     def json(self):
         ovo = self._ovo.obj_to_primitive()
         return {'class': type(self).__name__,
-                'backend': self.backend.config,
+                'backend': getattr(self.backend, 'config', self.backend),
                 'ovo': ovo}
 
     @property
