@@ -43,8 +43,10 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
     def __init__(self, connection, sqlite_synchronous=True,
                  soft_deletes=False):
         self.soft_deletes = soft_deletes
-        volume_cmd.CONF.database.connection = connection
-        volume_cmd.CONF.database.sqlite_synchronous = sqlite_synchronous
+        volume_cmd.CONF.set_override('connection', connection, 'database')
+        volume_cmd.CONF.set_override('sqlite_synchronous',
+                                     sqlite_synchronous,
+                                     'database')
 
         # Suppress logging for migration
         migrate_logger = logging.getLogger('migrate')

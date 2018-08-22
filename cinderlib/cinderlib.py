@@ -192,7 +192,7 @@ class Backend(object):
             return
 
         for key, value in log_params.items():
-            setattr(volume_cmd.CONF, key, value)
+            volume_cmd.CONF.set_override(key, value)
         volume_cmd.logging.setup(volume_cmd.CONF, 'cinder')
         volume_cmd.python_logging.captureWarnings(True)
 
@@ -204,8 +204,11 @@ class Backend(object):
     @classmethod
     def _set_coordinator(cls, file_locks_path):
         file_locks_path = file_locks_path or os.getcwd()
-        volume_cmd.CONF.oslo_concurrency.lock_path = file_locks_path
-        volume_cmd.CONF.coordination.backend_url = 'file://' + file_locks_path
+        volume_cmd.CONF.set_override('lock_path', file_locks_path,
+                                     'oslo_concurrency')
+        volume_cmd.CONF.set_override('backend_url',
+                                     'file://' + file_locks_path,
+                                     'coordination')
         coordination.COORDINATOR.start()
 
     @property
