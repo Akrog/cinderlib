@@ -170,6 +170,9 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         if 'connection_info' in changed:
             connection._convert_connection_info_to_db_format(changed)
 
+        if 'connector' in changed:
+            connection._convert_connector_to_db_format(changed)
+
         # Create
         if 'id' in changed:
             LOG.debug('set_connection creating %s', changed)
