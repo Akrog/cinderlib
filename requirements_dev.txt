@@ -10,4 +10,4 @@ coverage==4.1
 Sphinx==1.6.5
 mock==2.0.0
 readme_renderer==21.0
-git+https://github.com/openstack/cinder.git@stable/pike
+git+https://github.com/openstack/cinder.git

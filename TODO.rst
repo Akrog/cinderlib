@@ -14,7 +14,6 @@ list to keep track of the most relevant topics.
 - Parameter validation
 - Support using *cinderlib* without cinder to just handle the attach/detach
 - Add .py examples
-- Support other Cinder releases besides Pike
 - Add support for new Attach/Detach mechanism
 - Consistency Groups
 - Encryption

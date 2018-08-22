@@ -10,6 +10,7 @@ History
   - Use NOS-Brick to setup OS-Brick for non OpenStack usage.
   - Can setup persistence directly to use key-value storage.
   - Support loading objects without configured backend.
+  - Support for Cinder Queens, Rocky, and Master
 
 - Bug fixes:
 
