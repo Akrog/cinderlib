@@ -1,9 +1,9 @@
 # Based on centos
-FROM centos:7.4.1708
+FROM centos:7
 LABEL maintainers="Gorka Eguileor <geguileo@redhat.com>"
 LABEL description="Cinderlib"
 
-RUN yum -y install targetcli iscsi-initiator-utils device-mapper-multipath epel-release && \
+RUN yum -y install targetcli iscsi-initiator-utils device-mapper-multipath epel-release lvm2 && \
     yum -y install python2-pip centos-release-openstack-pike && \
     yum -y install openstack-cinder python-rbd ceph-common && \
     yum clean all && \
