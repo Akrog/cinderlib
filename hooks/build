@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+if [ "$CACHE_TAG" == "master" ]
+then
+  cl_release=`git tag --sort=-v:refname|head -1`
+
+  # Build cinderlib master with cinder master
+  echo "Building cinderlib master with Cinder master ..."
+  docker build --build-arg VERSION=$cl_release -t $DOCKER_REPO:master -f Dockerfile .
+
+  # Build cinderlib master with latest supported Cinder stable release
+  release=`tail -1 rdo-releases`
+  echo "Building cinderlib master with Cinder $release ..."
+  docker build --build-arg RELEASE=$release --build-arg VERSION=$cl_release -t $DOCKER_REPO:latest -f Dockerfile-latest .
+
+else
+  # Build cinderlib latest release with cinder stable branches
+  releases=`cat rdo-releases`
+  while read -r release; do
+      echo "Building $CACHE_TAG with Cinder $release ..."
+      docker build --build-arg RELEASE=$release -t $DOCKER_REPO:$release --build-arg VERSION=$CACHE_TAG -f Dockerfile-release .
+  done <<< "$releases"
+fi

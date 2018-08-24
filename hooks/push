@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# Push cinderlib master branches
+if [ "$CACHE_TAG" == "master" ]
+then
+  echo "Pushing latest ..."
+  docker push $DOCKER_REPO:latest
+
+  echo "Pushing master ..."
+  docker push $DOCKER_REPO:master
+
+# Push cinderlib latest release with cinder stable branches
+else
+  releases=`cat rdo-releases`
+  cl_release=`git tag --sort=-v:refname|head -1`
+  while read -r release; do
+      echo "Pushing $release ..."
+      docker push $DOCKER_REPO:$release
+
+      # Push it also with the cinderlib version tag
+      echo "Pushing $release-cl$cl_release tag ..."
+      docker tag $DOCKER_REPO:$release $DOCKER_REPO:$release-cl$cl_release
+      docker push $DOCKER_REPO:$release-cl$cl_release
+  done <<< "$releases"
+
+  docker tag $DOCKER_REPO:$release $DOCKER_REPO:stable
+  docker push $DOCKER_REPO:stable
+fi
