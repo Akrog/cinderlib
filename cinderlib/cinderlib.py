@@ -28,7 +28,7 @@ from cinder import utils
 from cinder.volume import configuration
 import nos_brick
 from oslo_utils import importutils
-import requests
+import urllib3
 
 from cinderlib import objects
 from cinderlib import persistence
@@ -166,10 +166,9 @@ class Backend(object):
         cls._set_coordinator(file_locks_path)
 
         if suppress_requests_ssl_warnings:
-            requests.packages.urllib3.disable_warnings(
-                requests.packages.urllib3.exceptions.InsecureRequestWarning)
-            requests.packages.urllib3.disable_warnings(
-                requests.packages.urllib3.exceptions.InsecurePlatformWarning)
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            urllib3.disable_warnings(
+                urllib3.exceptions.InsecurePlatformWarning)
 
         cls.global_initialization = True
         cls.output_all_backend_info = output_all_backend_info

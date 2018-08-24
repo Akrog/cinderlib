@@ -15,6 +15,7 @@ History
 - Bug fixes:
 
   - Workaround for Python 2 getaddrinfo bug
+  - Compatibility with requests and requests-kerberos
 
 0.2.1 (2018-06-14)
 ------------------
