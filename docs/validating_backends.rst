@@ -45,7 +45,7 @@ be comprised of three steps:
 
   To see the Python dependencies for each backend we can check the
   `driver-requirements.txt
-  <https://raw.githubusercontent.com/openstack/cinder/stable/pike/driver-requirements.txt>`_
+  <https://raw.githubusercontent.com/openstack/cinder/stable/queens/driver-requirements.txt>`_
   file from the Cinder project, or in *cinderlib*'s `setup.py` file listed in
   the `extras` dictionary.
 
@@ -218,7 +218,7 @@ was tested please include the following information in your report:
   configuration files...
 - Contents of the YAML file with usernames, passwords, and IPs appropriately
   masked.
-- *Cinder* release: If a release other than *Pike* has been used.
+- *Cinder* releases: What cinder releases have been tested.
 - Additional notes: Limitations or anything worth mentioning.
 
 To report the results of the tests please create an `issue on the project`_

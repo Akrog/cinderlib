@@ -27,7 +27,7 @@ LVM
 ---
 
 - *Cinderlib version*: v0.1.0, v0.2.0
-- *Cinder release*: *Pike*
+- *Cinder release*: *Pike*, *Queens*, *Rocky*
 - *Storage*: LVM with LIO
 - *Connection type*: iSCSI
 - *Requirements*:  None
@@ -91,7 +91,7 @@ XtremIO
 -------
 
 - *Cinderlib version*: v0.1.0, v0.2.0
-- *Cinder release*: *Pike*
+- *Cinder release*: *Pike*, *Queens*, *Rocky*
 - *Storage*: Dell EMC XtremIO
 - *Versions*: v4.0.15-20_hotfix_3
 - *Connection type*: iSCSI, FC
@@ -133,7 +133,7 @@ Kaminario
 ---------
 
 - *Cinderlib version*: v0.1.0, v0.2.0
-- *Cinder release*: *Pike*
+- *Cinder release*: *Pike*, *Queens*, *Rocky*
 - *Storage*: Kaminario K2
 - *Versions*: VisionOS v6.0.72.10
 - *Connection type*: iSCSI
@@ -190,7 +190,7 @@ VMAX
 ----
 
 - *Cinderlib version*: v0.1.0
-- *Cinder release*: Pike, Queens, Rocky
+- *Cinder release*: *Pike*, *Queens*, *Rocky*
 - *Storage*: Dell EMC VMAX
 - *Versions*: Unknown
 - *Connection type*: iSCSI

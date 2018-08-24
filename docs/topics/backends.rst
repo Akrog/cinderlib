@@ -152,7 +152,7 @@ Some of the keys provided in the stats dictionary include:
 - `vendor_name volume_backend_name`
 
 Additional information can be found in the `Volume Stats section
-<https://docs.openstack.org/cinder/pike/contributor/drivers.html#volume-stats>`_
+<https://docs.openstack.org/cinder/queens/contributor/drivers.html#volume-stats>`_
 within the Developer's Documentation.
 
 Gathering stats is a costly operation for many storage backends, so by default

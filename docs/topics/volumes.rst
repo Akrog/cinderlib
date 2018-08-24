@@ -87,7 +87,7 @@ information.
 
 Available fields with their types can be found in `Cinder's Volume OVO
 definition
-<https://github.com/openstack/cinder/blob/stable/pike/cinder/objects/volume.py#L69-L126>`_,
+<https://github.com/openstack/cinder/blob/stable/queens/cinder/objects/volume.py#L71-L131>`_,
 but most of them are only relevant within the full *Cinder* service.
 
 We can access these fields as if they were part of the *cinderlib* *Volume*

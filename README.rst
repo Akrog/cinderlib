@@ -101,13 +101,21 @@ You can either use a container:
 
 .. code-block:: shell
 
-   $ docker run --name=cinderlib --privileged --net=host -v /etc/iscsi:/etc/iscsi -v /dev:/dev -it akrog/cinderlib python
+   $ docker run --name=cinderlib --privileged --net=host \
+     -v /etc/iscsi:/etc/iscsi \
+     -v /dev:/dev \
+     -v /etc/lvm:/etc/lvm \
+     -v /var/lock/lvm:/var/lock/lvm \
+     -v /lib/modules:/lib/modules \
+     -v /run/udev:/run/udev \
+     -v /etc/localtime:/etc/localtime \
+     -it akrog/cinderlib python
 
 Or install things on baremetal/VM:
 
 .. code-block:: shell
 
-    $ sudo yum install -y centos-release-openstack-pike
+    $ sudo yum install -y centos-release-openstack-queens
     $ test -f  /etc/yum/vars/contentdir || echo centos >/etc/yum/vars/contentdir
     $ sudo yum install -y openstack-cinder targetcli python-pip
     $ sudo pip install cinderlib

@@ -89,8 +89,6 @@ more noticeable limitations one should be aware of are:
 
 - Only a subset of Cinder available operations are supported by the library.
 
-- The only Cinder release that has been tested with the library has been Pike.
-
 - Access to a small number of storage arrays has limited the number of drivers
   that have been verified to work with cinderlib.
 

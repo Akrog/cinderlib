@@ -27,8 +27,8 @@ the RPM to set up the OpenStack repository:
 
 .. code-block:: console
 
-    # yum install -y centos-release-openstack-pike
-    # yum-config-manager --enable openstack-pike
+    # yum install -y centos-release-openstack-queens
+    # yum-config-manager --enable openstack-queens
     # yum update -y
     # yum install -y openstack-cinder
 
@@ -37,8 +37,8 @@ to set up the OpenStack repository:
 
 .. code-block:: console
 
-    # yum install -y https://repos.fedorapeople.org/repos/openstack/openstack-pike/rdo-release-pike-1.noarch.rpm
-    # yum-config-manager --enable openstack-pike
+    # yum install -y https://repos.fedorapeople.org/repos/openstack/openstack-queens/rdo-release-queens-1.noarch.rpm
+    # yum-config-manager --enable openstack-queens
     # sudo yum update -y
     # yum install -y openstack-cinder
 
@@ -99,7 +99,7 @@ we can install the drivers from source:
 
     $ virtualenv cinder
     $ source cinder/bin/activate
-    $ pip install git+https://github.com/openstack/cinder.git@stable/pike
+    $ pip install git+https://github.com/openstack/cinder.git
 
 Library
 _______
