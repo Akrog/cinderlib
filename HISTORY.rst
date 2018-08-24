@@ -2,7 +2,7 @@
 History
 =======
 
-0.2.2 (2018-07-xx)
+0.2.2 (2018-07-24)
 ------------------
 
 - Features:
@@ -11,11 +11,15 @@ History
   - Can setup persistence directly to use key-value storage.
   - Support loading objects without configured backend.
   - Support for Cinder Queens, Rocky, and Master
+  - Serialization returns a compact string
 
 - Bug fixes:
 
   - Workaround for Python 2 getaddrinfo bug
   - Compatibility with requests and requests-kerberos
+  - Fix key-value support set_key_value.
+  - Fix get_key_value to return KeyValue.
+  - Fix loading object without configured backend.
 
 0.2.1 (2018-06-14)
 ------------------
