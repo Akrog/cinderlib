@@ -22,7 +22,7 @@ RUN yum -y install targetcli iscsi-initiator-utils device-mapper-multipath epel-
 COPY . /cinderlib
 
 RUN pip install --no-cache-dir /cinderlib/ && \
-    rm -rf \cinderlib
+    rm -rf /cinderlib
 
 # Define default command
 CMD ["bash"]
