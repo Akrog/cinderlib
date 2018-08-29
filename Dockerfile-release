@@ -6,7 +6,7 @@ LABEL maintainers="Gorka Eguileor <geguileo@redhat.com>" \
       description="Cinderlib" \
       version=${VERSION:-latest}
 
-RUN yum -y install targetcli iscsi-initiator-utils device-mapper-multipath epel-release lvm2 && \
+RUN yum -y install targetcli iscsi-initiator-utils device-mapper-multipath epel-release lvm2 which && \
     yum -y install python2-pip centos-release-openstack-$RELEASE && \
     yum -y install openstack-cinder python-rbd ceph-common && \
     yum clean all && \

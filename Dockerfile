@@ -5,7 +5,7 @@ LABEL maintainers="Gorka Eguileor <geguileo@redhat.com>" \
       description="Cinderlib" \
       version=${VERSION:-master}
 
-RUN yum -y install targetcli iscsi-initiator-utils device-mapper-multipath epel-release lvm2 && \
+RUN yum -y install targetcli iscsi-initiator-utils device-mapper-multipath epel-release lvm2 which && \
     yum -y install python2-pip python-devel gcc && \
     yum -y install python-rbd ceph-common git && \
     # Need new setuptools version or we'll get "SyntaxError: '<' operator not allowed in environment markers" when installing Cinder
