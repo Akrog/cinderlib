@@ -71,8 +71,8 @@ example of how to save everything to the database:
 
    lvm = cl.Backend(volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
                     volume_group='cinder-volumes',
-                    iscsi_protocol='iscsi',
-                    iscsi_helper='lioadm',
+                    target_protocol='iscsi',
+                    target_helper='lioadm',
                     volume_backend_name='lvm_iscsi')
    vol = lvm.create_volume(1)
 
@@ -89,8 +89,8 @@ And how to load it back:
 
    lvm = cl.Backend(volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
                     volume_group='cinder-volumes',
-                    iscsi_protocol='iscsi',
-                    iscsi_helper='lioadm',
+                    target_protocol='iscsi',
+                    target_helper='lioadm',
                     volume_backend_name='lvm_iscsi')
 
    with open('cinderlib.txt', 'r') as f:
@@ -128,8 +128,8 @@ database URLs format`_ as the value of the `connection` key.
 
    lvm = cl.Backend(volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
                     volume_group='cinder-volumes',
-                    iscsi_protocol='iscsi',
-                    iscsi_helper='lioadm',
+                    target_protocol='iscsi',
+                    target_helper='lioadm',
                     volume_backend_name='lvm_iscsi')
    vol = lvm.create_volume(1)
 
@@ -144,8 +144,8 @@ Using it later is exactly the same:
 
    lvm = cl.Backend(volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
                     volume_group='cinder-volumes',
-                    iscsi_protocol='iscsi',
-                    iscsi_helper='lioadm',
+                    target_protocol='iscsi',
+                    target_helper='lioadm',
                     volume_backend_name='lvm_iscsi')
 
    print lvm.volumes
@@ -215,8 +215,8 @@ The invocation with a class plugin would look something like this:
 
    lvm = cl.Backend(volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
                     volume_group='cinder-volumes',
-                    iscsi_protocol='iscsi',
-                    iscsi_helper='lioadm',
+                    target_protocol='iscsi',
+                    target_helper='lioadm',
                     volume_backend_name='lvm_iscsi')
 
 
@@ -247,8 +247,8 @@ An example code of how to migrate from SQLite to MySQL could look like this:
    # Setup backends we want to migrate
    lvm = cl.Backend(volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
                     volume_group='cinder-volumes',
-                    iscsi_protocol='iscsi',
-                    iscsi_helper='lioadm',
+                    target_protocol='iscsi',
+                    target_helper='lioadm',
                     volume_backend_name='lvm_iscsi')
 
    # Get all the data into memory

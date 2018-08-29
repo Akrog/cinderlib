@@ -94,8 +94,8 @@ The contents of the default configuration, excluding the comments, are:
        - volume_backend_name: lvm
          volume_driver: cinder.volume.drivers.lvm.LVMVolumeDriver
          volume_group: cinder-volumes
-         iscsi_protocol: iscsi
-         iscsi_helper: lioadm
+         target_protocol: iscsi
+         target_helper: lioadm
 
 But like the name implies, `backends` can have multiple drivers configured, and
 the functional tests will run the tests on them all.
@@ -110,8 +110,8 @@ would look like this:
    backends:
        - volume_driver: cinder.volume.drivers.lvm.LVMVolumeDriver
          volume_group: cinder-volumes
-         iscsi_protocol: iscsi
-         iscsi_helper: lioadm
+         target_protocol: iscsi
+         target_helper: lioadm
          volume_backend_name: lvm
 
        - volume_backend_name: xtremio

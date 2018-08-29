@@ -79,8 +79,8 @@ LVM
     lvm = cinderlib.Backend(
         volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
         volume_group='cinder-volumes',
-        iscsi_protocol='iscsi',
-        iscsi_helper='lioadm',
+        target_protocol='iscsi',
+        target_helper='lioadm',
         volume_backend_name='lvm_iscsi',
     )
 
