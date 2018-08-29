@@ -121,7 +121,7 @@ Multipath
 
 If we want to use multipathing for local attachments we must let the *Backend*
 know when instantiating the driver by passing the
-`use-multipath_for_image_xfer=True`:
+`use_multipath_for_image_xfer=True`:
 
 
 .. code-block:: python
@@ -134,7 +134,7 @@ know when instantiating the driver by passing the
         iscsi_protocol='iscsi',
         iscsi_helper='lioadm',
         volume_backend_name='lvm_iscsi',
-        use-multipath_for_image_xfer=True,
+        use_multipath_for_image_xfer=True,
     )
 
 Multi attach
