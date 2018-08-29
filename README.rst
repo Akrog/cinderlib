@@ -97,19 +97,51 @@ the easiest to setup and test.
 
 First you need to setup your system.
 
-You can either use a container:
+The easiest way to set things up is using Vagrant + libvirt using the provided
+docker example, as it will create a small VM (1GB and 1CPU) and provision
+everything so we can run a Python interpreter in a cinderlib container:
 
 .. code-block:: shell
 
-   $ docker run --name=cinderlib --privileged --net=host \
+   $ cd examples/docker
+   $ vagrant up
+   $ vagrant ssh -c 'sudo docker exec -it cinderlib python'
+
+If we don't want to use the example we have to setup an LVM VG to use:
+
+.. code-block:: shell
+
+    $ sudo dd if=/dev/zero of=cinder-volumes bs=1048576 seek=22527 count=1
+    $ sudo lodevice=`losetup --show -f ./cinder-volumes`
+    $ sudo vgcreate cinder-volumes $lodevice
+    $ sudo vgscan --cache
+
+Now we can install everything on baremetal:
+
+    $ sudo yum install -y centos-release-openstack-queens
+    $ test -f  /etc/yum/vars/contentdir || echo centos >/etc/yum/vars/contentdir
+    $ sudo yum install -y openstack-cinder targetcli python-pip
+    $ sudo pip install cinderlib
+
+Or run it in a container.  To be able to run it in a container we need to
+change our host's LVM configuration and set `udev_rules = 0` and
+`udev_sync = 0` before we start the container:
+
+.. code-block:: shell
+
+   $ sudo docker run --name=cinderlib --privileged --net=host \
      -v /etc/iscsi:/etc/iscsi \
      -v /dev:/dev \
      -v /etc/lvm:/etc/lvm \
      -v /var/lock/lvm:/var/lock/lvm \
-     -v /lib/modules:/lib/modules \
-     -v /run/udev:/run/udev \
-     -v /etc/localtime:/etc/localtime \
-     -it akrog/cinderlib python
+     -v /lib/modules:/lib/modules:ro \
+     -v /run:/run \
+     -v /var/lib/iscsi:/var/lib/iscsi \
+     -v /etc/localtime:/etc/localtime:ro \
+     -v /root/cinder:/var/lib/cinder \
+     -v /sys/kernel/config:/configfs \
+     -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+     -it akrog/cinderlib:latest python
 
 Or install things on baremetal/VM:
 
