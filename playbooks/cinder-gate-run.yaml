@@ -1,0 +1,29 @@
+- hosts: all
+  become: True
+  vars:
+    devstack_base_dir: "{{ devstack_base_dir|default('/opt/stack') }}"
+    cinderlib_dir: "{{ cinderlib_dir }}|default({{ devstack_base_dir }}/cinderlib)"
+    cl_log_file: "{{ devstack_base_dir }}/logs/cinderlib.txt"
+    cinderlib_ignore_errors: "{{ cinderlib_ignore_errors }}|default(no)"
+  tasks:
+    - name: Create temporary config directory
+      tempfile:
+          state: directory
+          suffix: cinderlib
+      register: tempdir
+
+    - name: Convert Cinder's config to cinderlib functional test YAML
+      shell:
+        cmd: "{{ cinderlib_dir }}/tools/cinder-to-yaml.py /etc/cinder/cinder.conf {{ tempdir.path }}/cinderlib.yaml >{{ cl_log_file }} 2>&1"
+      ignore_errors: "{{ cinderlib_ignore_errors }}"
+      register: generate_config
+
+    - name: Run cinderlib functional tests
+      shell:
+        cmd: "unit2 discover -v -s tests/functional >>{{ cl_log_file }} 2>&1"
+        executable: /bin/bash
+        chdir: "{{ cinderlib_dir }}"
+      environment:
+        CL_FTEST_CFG: "{{ tempdir.path }}/cinderlib.yaml"
+      when: generate_config.rc != 0
+      ignore_errors: "{{ cinderlib_ignore_errors }}"

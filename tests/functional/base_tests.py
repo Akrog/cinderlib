@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
 import functools
 import os
 import subprocess
@@ -72,7 +71,8 @@ class BaseFunctTestCase(unittest2.TestCase):
             # NOTE(geguileo): For some drivers need to use a custom sudo script
             # to find virtualenv commands (ie: cinder-rtstool).
             path = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
-            cls.root_helper = os.path.join(path, 'virtualenv-sudo.sh')
+            sudo_tool = os.path.join(path, '../../tools/virtualenv-sudo.sh')
+            cls.root_helper = os.path.abspath(sudo_tool)
         else:
             cls.root_helper = 'sudo'
         cinderlib.setup(root_helper=cls.root_helper,

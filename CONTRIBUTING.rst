@@ -125,7 +125,7 @@ Ready to contribute? Here's how to set up `cinderlib` for local development.
 
     $ mkdir temp
     $ cd temp
-    $ sudo ../tests/functional/lvm-prepare.sh
+    $ sudo ../tools/lvm-prepare.sh
 
    The default configuration for the functional tests can be found in the
    `tests/functional/lvm.yaml` file.  For additional information on this file
@@ -186,7 +186,7 @@ we can just call it from the location where we want to create the file:
 
 .. code-block:: shell
 
-    $ sudo tests/functional/lvm-prepare.sh
+    $ sudo tools/lvm-prepare.sh
 
 Now we can use this LVM backend in *cinderlib*:
 
