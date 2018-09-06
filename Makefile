@@ -47,12 +47,18 @@ clean-test: ## remove test and coverage artifacts
 	rm -f .coverage
 	rm -fr htmlcov/
 
-lint: ## check style with flake8
+python-requirements:
+	pip install -r requirements_dev.txt
+	pip install -e .
+
+lint: python-requirements ## check style with flake8
 	flake8 cinderlib tests
 
-test: ## run tests quickly with the default Python
+unit-tests:
+	tox -epy27
 
-		python setup.py test
+functional-tests:
+	unit2 discover -v -s tests/functional
 
 test-all: ## run tests on every Python version with tox
 	tox

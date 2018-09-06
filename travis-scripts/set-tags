@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+TRAVIS_REPO='akrog/travis-ci'
+export FINAL_REPO='akrog/cinderlib'
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+# Not a tag (merge to master, PR, or branch)
+if [ "$TRAVIS_BRANCH" != "$TRAVIS_TAG" ]; then
+  version=`git tag --sort=-v:refname|head -1`
+  release=`tail -1 hooks/rdo-releases`
+
+  sanitized_branch="${TRAVIS_BRANCH//\//_}"
+  travis_tag="${sanitized_branch}-PR${TRAVIS_PULL_REQUEST}"
+  TAGS=("Dockerfile;$version;$release;$TRAVIS_REPO:master-${travis_tag};$FINAL_REPO:master;unstable" \
+        "Dockerfile-latest;$version;$release;$TRAVIS_REPO:latest-${travis_tag};$FINAL_REPO:latest;unstable" )
+
+else
+  releases=`cat $DIR/rdo-releases`
+
+  while read -r release; do
+      release_tag="${release}-cl_${TRAVIS_TAG}"
+      TAGS[$i]="Dockerfile-release;${TRAVIS_TAG};$release;$TRAVIS_REPO:$release_tag;$FINAL_REPO:$release_tag;stable"
+      i=$((i + 1))
+  done <<< "$releases"
+fi
+
+export TAGS="${TAGS[@]}"
+echo "set-tags returns ${TAGS[@]}"

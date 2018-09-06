@@ -1,6 +1,7 @@
 # Based on centos this image builds cinderlib master with Cinder master branch
 FROM centos:7
 ARG VERSION
+ARG RELEASE
 LABEL maintainers="Gorka Eguileor <geguileo@redhat.com>" \
       description="Cinderlib" \
       version=${VERSION:-master}

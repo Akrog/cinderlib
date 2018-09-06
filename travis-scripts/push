@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+. "$DIR/set-tags"
+
+set -ev
+
+# Only push when tagging a release or making changes to master branch
+if [[ "$TRAVIS_BRANCH" == "$TRAVIS_TAG" || ("$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false") ]]; then
+  for tag_info_string in $TAGS; do
+    IFS=';' read -a tag_info <<< "$tag_info_string"
+    echo "Pulling ${tag_info[3]} ..."
+    docker pull ${tag_info[3]}
+    echo "Retagging and pushing ${tag_info[4]} ..."
+    docker tag  ${tag_info[3]} ${tag_info[4]}
+    docker push ${tag_info[4]}
+
+    if [ "${tag_info[5]}" == "stable" ]; then
+      echo "Setting stable tag ${tag_info[2]}"
+      docker tag  ${tag_info[4]} ${FINAL_REPO}:${tag_info[2]}
+      docker push ${FINAL_REPO}:${tag_info[2]}
+    fi
+  done
+
+  # TODO: Trigger Ember-CSI jobs https://docs.travis-ci.com/user/triggering-builds/
+else
+  echo "This is not a tag or a merge to master, skipping pushing to ember-csi"
+fi
