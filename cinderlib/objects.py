@@ -715,16 +715,20 @@ class Connection(Object, LazyVolumeAttr):
         device = self.connector.connect_volume(self.conn_info['data'])
         self.device_attached(device)
         try:
-            unavailable = not self.connector.check_valid_device(self.path)
+            if self.connector.check_valid_device(self.path):
+                error_msg = None
+            else:
+                error_msg = ('Unable to access the backend storage via path '
+                             '%s.' % self.path)
         except Exception:
-            unavailable = True
-            LOG.exception('Could not validate device %s', self.path)
+            error_msg = ('Could not validate device %s. There may be missing '
+                         'packages on your host.' % self.path)
+            LOG.exception(error_msg)
 
-        if unavailable:
+        if error_msg:
             raise cinder_exception.DeviceUnavailable(
                 path=self.path, attach_info=self._ovo.connection_information,
-                reason=('Unable to access the backend storage via path '
-                        '%s.') % self.path)
+                reason=error_msg)
         if self._volume:
             self.volume.local_attach = self
 

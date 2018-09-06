@@ -2,6 +2,13 @@
 History
 =======
 
+0.2.3 (2018-MM-DD)
+------------------
+
+- Features:
+
+  - Provide better message when device is not available.
+
 0.2.2 (2018-07-24)
 ------------------
 
