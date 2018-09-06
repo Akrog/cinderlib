@@ -75,7 +75,8 @@ class BasePersistenceTest(unittest2.TestCase):
         vols = self.create_n_volumes(2)
         conns = []
         for i, vol in enumerate(vols):
-            conn = cinderlib.Connection(self.backend, volume=vol)
+            conn = cinderlib.Connection(self.backend, volume=vol,
+                                        connection_info={'conn': {'data': {}}})
             conns.append(conn)
             self.persistence.set_connection(conn)
         return self.sorted(conns)
@@ -296,8 +297,8 @@ class BasePersistenceTest(unittest2.TestCase):
     def test_get_connections_by_volume(self):
         conns = self.create_connections()
         vol = conns[0].volume
-        expected_conns = [conns[0], cinderlib.Connection(self.backend,
-                                                         volume=vol)]
+        expected_conns = [conns[0], cinderlib.Connection(
+            self.backend, volume=vol, connection_info={'conn': {'data': {}}})]
         self.persistence.set_connection(expected_conns[1])
         res = self.persistence.get_connections(volume_id=vol.id)
         self.assertListEqualObj(self.sorted(expected_conns), self.sorted(res))
@@ -309,7 +310,8 @@ class BasePersistenceTest(unittest2.TestCase):
 
     def test_get_connections_by_multiple(self):
         vol = self.create_volumes([{'size': 1}])[0]
-        conns = [cinderlib.Connection(self.backend, volume=vol)
+        conns = [cinderlib.Connection(self.backend, volume=vol,
+                                      connection_info={'conn': {'data': {}}})
                  for i in range(2)]
         [self.persistence.set_connection(conn) for conn in conns]
         res = self.persistence.get_connections(volume_id=vol.id,
@@ -330,8 +332,10 @@ class BasePersistenceTest(unittest2.TestCase):
 
     def test_delete_connection_not_found(self):
         conns = self.create_connections()
-        fake_conn = cinderlib.Connection(self.backend,
-                                         volume=conns[0].volume)
+        fake_conn = cinderlib.Connection(
+            self.backend,
+            volume=conns[0].volume,
+            connection_info={'conn': {'data': {}}})
         self.persistence.delete_connection(fake_conn)
         res = self.persistence.get_connections()
         self.assertListEqualObj(conns, self.sorted(res))

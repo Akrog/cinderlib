@@ -14,7 +14,6 @@
 #    under the License.
 
 import cinderlib
-from cinderlib.persistence import memory
 from tests.unit.persistence import base
 
 
@@ -51,7 +50,8 @@ class TestMemoryPersistence(base.BasePersistenceTest):
 
     def test_set_connection(self):
         vol = cinderlib.Volume(self.backend, size=1, name='disk')
-        conn = cinderlib.Connection(self.backend, volume=vol, connector={})
+        conn = cinderlib.Connection(self.backend, volume=vol, connector={},
+                                    connection_info={'conn': {'data': {}}})
 
         self.assertDictEqual({}, self.persistence.connections)
 

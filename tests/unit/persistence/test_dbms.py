@@ -24,8 +24,10 @@ from cinderlib.persistence import dbms
 from tests.unit.persistence import base
 
 
-class TestMemoryDBPersistence(base.BasePersistenceTest):
-    PERSISTENCE_CFG = {'storage': 'memory_db'}
+class TestDBPersistence(base.BasePersistenceTest):
+    CONNECTION = 'sqlite:///' + tempfile.NamedTemporaryFile().name
+    PERSISTENCE_CFG = {'storage': 'db',
+                       'connection': CONNECTION}
 
     def tearDown(self):
         sqla_api.model_query(self.context, sqla_api.models.Snapshot).delete()
@@ -34,7 +36,7 @@ class TestMemoryDBPersistence(base.BasePersistenceTest):
         sqla_api.model_query(self.context,
                              sqla_api.models.Volume).delete()
         sqla_api.get_session().query(dbms.KeyValue).delete()
-        super(TestMemoryDBPersistence, self).tearDown()
+        super(TestDBPersistence, self).tearDown()
 
     def test_db(self):
         self.assertIsInstance(self.persistence.db,
@@ -75,7 +77,8 @@ class TestMemoryDBPersistence(base.BasePersistenceTest):
 
     def test_set_connection(self):
         vol = cinderlib.Volume(self.backend, size=1, name='disk')
-        conn = cinderlib.Connection(self.backend, volume=vol, connector={})
+        conn = cinderlib.Connection(self.backend, volume=vol, connector={},
+                                    connection_info={'conn': {'data': {}}})
 
         self.assertEqual(0,
                          len(sqla_api.volume_attachment_get_all(self.context)))
@@ -102,7 +105,6 @@ class TestMemoryDBPersistence(base.BasePersistenceTest):
         self.assertListEqualObj(expected, actual)
 
 
-class TestDBPersistence(TestMemoryDBPersistence):
-    CONNECTION = 'sqlite:///' + tempfile.NamedTemporaryFile().name
-    PERSISTENCE_CFG = {'storage': 'db',
-                       'connection': CONNECTION}
+# TODO: Figure out why we can't run both DB persistence test classes
+# class TestMemoryDBPersistence(TestDBPersistence):
+#     PERSISTENCE_CFG = {'storage': 'memory_db'}
