@@ -5,6 +5,10 @@ History
 0.2.3 (2018-MM-DD)
 ------------------
 
+- Bug fixes:
+
+  - Detach a volume when it's unavailable.
+
 - Features:
 
   - Provide better message when device is not available.
