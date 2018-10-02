@@ -39,7 +39,7 @@ attribute in the *Snapshot* is referencing the source volume.
 Delete
 ------
 
-Once we have created a *Sanpshot* we can use its `delete` method to permanently
+Once we have created a *Snapshot* we can use its `delete` method to permanently
 remove it from the storage backend.
 
 Deleting a snapshot will remove its reference from the source *Volume*'s
