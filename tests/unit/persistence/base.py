@@ -53,14 +53,16 @@ class BasePersistenceTest(unittest2.TestCase):
         return self.create_volumes([{'size': i, 'name': 'disk%s' % i}
                                     for i in range(1, n+1)])
 
-    def create_volumes(self, data):
+    def create_volumes(self, data, sort=True):
         vols = []
         for d in data:
             d.setdefault('backend_or_vol', self.backend)
             vol = cinderlib.Volume(**d)
             vols.append(vol)
             self.persistence.set_volume(vol)
-        return self.sorted(vols)
+        if sort:
+            return self.sorted(vols)
+        return vols
 
     def create_snapshots(self):
         vols = self.create_n_volumes(2)
@@ -184,6 +186,87 @@ class BasePersistenceTest(unittest2.TestCase):
                                            volume_name=vols[1].name,
                                            volume_id=vols[0].id)
         self.assertListEqualObj([], res)
+
+    def _check_volume_type(self, extra_specs, qos_specs, vol):
+        self.assertEqual(vol.id, vol.volume_type.id)
+        self.assertEqual(vol.id, vol.volume_type.name)
+        self.assertTrue(vol.volume_type.is_public)
+        self.assertEqual(extra_specs, vol.volume_type.extra_specs)
+
+        if qos_specs:
+            self.assertEqual(vol.id, vol.volume_type.qos_specs_id)
+            self.assertEqual(vol.id, vol.volume_type.qos_specs.id)
+            self.assertEqual(vol.id, vol.volume_type.qos_specs.name)
+            self.assertEqual('back-end', vol.volume_type.qos_specs.consumer)
+            self.assertEqual(qos_specs, vol.volume_type.qos_specs.specs)
+        else:
+            self.assertIsNone(vol.volume_type.qos_specs_id)
+
+    def test_get_volumes_extra_specs(self):
+        extra_specs = [{'k1': 'v1', 'k2': 'v2'},
+                       {'kk1': 'vv1', 'kk2': 'vv2', 'kk3': 'vv3'}]
+        vols = self.create_volumes(
+            [{'size': 1, 'extra_specs': extra_specs[0]},
+             {'size': 2, 'extra_specs': extra_specs[1]}],
+            sort=False)
+
+        # Check the volume type and the extra specs on created volumes
+        for i in range(len(vols)):
+            self._check_volume_type(extra_specs[i], None, vols[i])
+
+        # Check that we get what we stored
+        res = self.persistence.get_volumes(backend_name=self.backend.id)
+        vols = self.sorted(vols)
+        self.assertListEqualObj(vols, self.sorted(res))
+        for i in range(len(vols)):
+            self._check_volume_type(vols[i].volume_type.extra_specs, {},
+                                    vols[i])
+
+    def test_get_volumes_qos_specs(self):
+        qos_specs = [{'q1': 'r1', 'q2': 'r2'},
+                     {'qq1': 'rr1', 'qq2': 'rr2', 'qq3': 'rr3'}]
+        vols = self.create_volumes(
+            [{'size': 1, 'qos_specs': qos_specs[0]},
+             {'size': 2, 'qos_specs': qos_specs[1]}],
+            sort=False)
+
+        # Check the volume type and the extra specs on created volumes
+        for i in range(len(vols)):
+            self._check_volume_type({}, qos_specs[i], vols[i])
+
+        # Check that we get what we stored
+        res = self.persistence.get_volumes(backend_name=self.backend.id)
+        vols = self.sorted(vols)
+        res = self.sorted(res)
+        self.assertListEqualObj(vols, res)
+        for i in range(len(vols)):
+            self._check_volume_type({}, vols[i].volume_type.qos_specs.specs,
+                                    vols[i])
+
+    def test_get_volumes_extra_and_qos_specs(self):
+        qos_specs = [{'q1': 'r1', 'q2': 'r2'},
+                     {'qq1': 'rr1', 'qq2': 'rr2', 'qq3': 'rr3'}]
+        extra_specs = [{'k1': 'v1', 'k2': 'v2'},
+                       {'kk1': 'vv1', 'kk2': 'vv2', 'kk3': 'vv3'}]
+        vols = self.create_volumes(
+            [{'size': 1, 'qos_specs': qos_specs[0],
+              'extra_specs': extra_specs[0]},
+             {'size': 2, 'qos_specs': qos_specs[1],
+              'extra_specs': extra_specs[1]}],
+            sort=False)
+
+        # Check the volume type and the extra specs on created volumes
+        for i in range(len(vols)):
+            self._check_volume_type(extra_specs[i], qos_specs[i], vols[i])
+
+        # Check that we get what we stored
+        res = self.persistence.get_volumes(backend_name=self.backend.id)
+        vols = self.sorted(vols)
+        self.assertListEqualObj(vols, self.sorted(res))
+        for i in range(len(vols)):
+            self._check_volume_type(vols[i].volume_type.extra_specs,
+                                    vols[i].volume_type.qos_specs.specs,
+                                    vols[i])
 
     def test_delete_volume(self):
         vols = self.create_n_volumes(2)

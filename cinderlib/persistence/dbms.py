@@ -88,6 +88,10 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         ovos = cinder_objs.VolumeList.get_all(objects.CONTEXT, filters=filters)
         result = [objects.Volume(ovo.availability_zone, __ovo=ovo)
                   for ovo in ovos.objects]
+        for r in result:
+            if r.volume_type_id:
+                r.volume_type.extra_specs  # Trigger extra specs load
+                r.volume_type.qos_specs  # Trigger qos specs load
         return result
 
     def get_snapshots(self, snapshot_id=None, snapshot_name=None,
@@ -129,7 +133,41 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         if not changed:
             changed = self.get_fields(volume)
 
-        # Create
+        extra_specs = changed.pop('extra_specs', None)
+        qos_specs = changed.pop('qos_specs', None)
+
+        # Since OVOs are not tracking QoS or Extra specs dictionary changes,
+        # we only support setting QoS or Extra specs on creation or add them
+        # later.
+        if changed.get('volume_type_id'):
+            vol_type_fields = {'id': volume.volume_type_id,
+                               'name': volume.volume_type_id,
+                               'extra_specs': extra_specs,
+                               'is_public': True}
+            if qos_specs:
+                res = self.db.qos_specs_create(objects.CONTEXT,
+                                               {'name': volume.volume_type_id,
+                                                'consumer': 'back-end',
+                                                'specs': qos_specs})
+                # Cinder is automatically generating an ID, replace it
+                query = sqla_api.model_query(objects.CONTEXT,
+                                             models.QualityOfServiceSpecs)
+                query.filter_by(id=res['id']).update(
+                    {'id': volume.volume_type.qos_specs_id})
+
+            self.db.volume_type_create(objects.CONTEXT, vol_type_fields)
+        else:
+            if extra_specs is not None:
+                self.db.volume_type_extra_specs_update_or_create(
+                    objects.CONTEXT, volume.volume_type_id, extra_specs)
+
+                self.db.qos_specs_update(objects.CONTEXT,
+                                         volume.volume_type.qos_specs_id,
+                                         {'name': volume.volume_type_id,
+                                          'consumer': 'back-end',
+                                          'specs': qos_specs})
+
+        # Create the volume
         if 'id' in changed:
             LOG.debug('set_volume creating %s', changed)
             try:
@@ -200,10 +238,36 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         if self.soft_deletes:
             LOG.debug('soft deleting volume %s', volume.id)
             self.db.volume_destroy(objects.CONTEXT, volume.id)
+            if volume.volume_type_id:
+                LOG.debug('soft deleting volume type %s',
+                          volume.volume_type_id)
+                self.db.volume_destroy(objects.CONTEXT, volume.volume_type_id)
+                if volume.volume_type.qos_specs_id:
+                    self.db.qos_specs_delete(objects.CONTEXT,
+                                             volume.volume_type.qos_specs_id)
         else:
             LOG.debug('hard deleting volume %s', volume.id)
             query = sqla_api.model_query(objects.CONTEXT, models.Volume)
             query.filter_by(id=volume.id).delete()
+            if volume.volume_type_id:
+                LOG.debug('hard deleting volume type %s',
+                          volume.volume_type_id)
+                query = sqla_api.model_query(objects.CONTEXT,
+                                             models.VolumeTypeExtraSpecs)
+                query.filter_by(volume_type_id=volume.volume_type_id).delete()
+
+                query = sqla_api.model_query(objects.CONTEXT,
+                                             models.VolumeType)
+                query.filter_by(id=volume.volume_type_id).delete()
+
+                query = sqla_api.model_query(objects.CONTEXT,
+                                             models.QualityOfServiceSpecs)
+                qos_id = volume.volume_type.qos_specs_id
+                if qos_id:
+                    query.filter(sqla_api.or_(
+                        models.QualityOfServiceSpecs.id == qos_id,
+                        models.QualityOfServiceSpecs.specs_id == qos_id
+                    )).delete()
         super(DBPersistence, self).delete_volume(volume)
 
     def delete_snapshot(self, snapshot):

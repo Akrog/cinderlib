@@ -144,6 +144,13 @@ Some of the fields we could be interested in are:
 - `bootable`: Not relevant for *cinderlib*, but maybe useful for the
   *cinderlib* user.
 
+- `extra_specs`: Extra volume configuration used by some drivers to specify
+  additional information, such as compression, deduplication, etc.  Key-Value
+  pairs are driver specific.
+
+- `qos_specs`: Backend QoS configuration. Dictionary with driver specific
+  key-value pares that enforced by the backend.
+
 .. note::
 
     *Cinderlib* automatically generates a UUID for the `id` if one is not

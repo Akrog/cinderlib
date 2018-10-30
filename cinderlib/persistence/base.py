@@ -21,6 +21,8 @@ from oslo_utils import timeutils
 from oslo_versionedobjects import fields
 import six
 
+from cinderlib import serialization
+
 
 class PersistenceDriverBase(object):
     """Provide Metadata Persistency for our resources.
@@ -51,6 +53,10 @@ class PersistenceDriverBase(object):
 
     def set_volume(self, volume):
         self.reset_change_tracker(volume)
+        if volume.volume_type:
+            volume.volume_type.obj_reset_changes()
+            if volume.volume_type.qos_specs_id:
+                volume.volume_type.qos_specs.obj_reset_changes()
 
     def set_snapshot(self, snapshot):
         self.reset_change_tracker(snapshot)
@@ -94,6 +100,13 @@ class PersistenceDriverBase(object):
         result = {key: getattr(resource._ovo, key)
                   for key in resource._changed_fields
                   if not isinstance(resource.fields[key], fields.ObjectField)}
+        if getattr(resource._ovo, 'volume_type_id', None):
+            if ('qos_specs' in resource.volume_type._changed_fields
+                    and resource.volume_type.qos_specs):
+                result['qos_specs'] = resource._ovo.volume_type.qos_specs.specs
+            if ('extra_specs' in resource.volume_type._changed_fields
+                    and resource.volume_type.extra_specs):
+                result['extra_specs'] = resource._ovo.volume_type.extra_specs
         return result
 
     def get_fields(self, resource):
@@ -104,6 +117,10 @@ class PersistenceDriverBase(object):
                 key not in getattr(resource, 'obj_extra_fields', []) and not
                 isinstance(resource.fields[key], fields.ObjectField))
         }
+        if getattr(resource._ovo, 'volume_type_id', None):
+            result['extra_specs'] = resource._ovo.volume_type.extra_specs
+            if resource._ovo.volume_type.qos_specs_id:
+                result['qos_specs'] = resource._ovo.volume_type.qos_specs.specs
         return result
 
 
@@ -141,6 +158,27 @@ class DB(object):
 
     def snapshot_get(self, context, snapshot_id, *args, **kwargs):
         return self.persistence.get_snapshots(snapshot_id)[0]._ovo
+
+    def get_volume_type(self, context, id, inactive=False,
+                        expected_fields=None):
+        res = self.persistence.get_volumes(id)[0]._ovo
+        if not res.volume_type_id:
+            return None
+        return self._vol_type_to_dict(res.volume_type)
+
+    def qos_specs_get(self, context, qos_specs_id, inactive=False):
+        res = self.persistence.get_volumes(qos_specs_id)[0]._ovo
+        if not res.volume_type_id:
+            return None
+        return self._vol_type_to_dict(res.volume_type)['qos_specs']
+
+    @staticmethod
+    def _vol_type_to_dict(volume_type):
+        res = serialization.obj_to_primitive(volume_type)
+        res = res['versioned_object.data']
+        if res.get('qos_specs'):
+            res['qos_specs'] = res['qos_specs']['versioned_object.data']
+        return res
 
     @classmethod
     def image_volume_cache_get_by_volume_id(cls, context, volume_id):

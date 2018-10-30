@@ -301,9 +301,31 @@ class Volume(NamedObject):
             self._snapshots = []
             self._connections = []
 
+        qos_specs = kwargs.pop('qos_specs', None)
+        extra_specs = kwargs.pop('extra_specs', {})
+
         super(Volume, self).__init__(backend_or_vol, **kwargs)
         self._populate_data()
         self.local_attach = None
+
+        if qos_specs or extra_specs:
+            if qos_specs:
+                qos_specs = cinder_objs.QualityOfServiceSpecs(
+                    id=self.id, name=self.id,
+                    consumer='back-end', specs=qos_specs)
+                qos_specs_id = self.id
+            else:
+                qos_specs = qos_specs_id = None
+
+            self._ovo.volume_type = cinder_objs.VolumeType(
+                context=self.CONTEXT,
+                is_public=True,
+                id=self.id,
+                name=self.id,
+                qos_specs_id=qos_specs_id,
+                extra_specs=extra_specs,
+                qos_specs=qos_specs)
+            self._ovo.volume_type_id = self.id
 
     @property
     def snapshots(self):
