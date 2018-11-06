@@ -63,4 +63,4 @@ class TestMemoryPersistence(base.BasePersistenceTest):
         expected = [cinderlib.KeyValue('key', 'value')]
         self.persistence.set_key_value(expected[0])
         self.assertTrue('key' in self.persistence.key_values)
-        self.assertEqual(expected, self.persistence.key_values.values())
+        self.assertEqual(expected, list(self.persistence.key_values.values()))

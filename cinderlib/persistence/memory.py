@@ -70,7 +70,7 @@ class MemoryPersistence(persistence_base.PersistenceDriverBase):
     def get_key_values(self, key=None):
         try:
             result = ([self.key_values[key]] if key
-                      else self.key_values.values())
+                      else list(self.key_values.values()))
         except KeyError:
             return []
         return result
