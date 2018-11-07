@@ -34,20 +34,20 @@ class PersistenceDriverBase(object):
 
     @property
     def db(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_volumes(self, volume_id=None, volume_name=None, backend_name=None):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_snapshots(self, snapshot_id=None, snapshot_name=None,
                       volume_id=None):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_connections(self, connection_id=None, volume_id=None):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_key_values(self, key):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def set_volume(self, volume):
         self.reset_change_tracker(volume)

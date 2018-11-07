@@ -115,10 +115,10 @@ class BasePersistenceTest(unittest2.TestCase):
         self.assertDictEqual(exp, act)
 
     def test_db(self):
-        raise NotImplemented('Test class must implement this method')
+        raise NotImplementedError('Test class must implement this method')
 
     def test_set_volume(self):
-        raise NotImplemented('Test class must implement this method')
+        raise NotImplementedError('Test class must implement this method')
 
     def test_get_volumes_all(self):
         vols = self.create_n_volumes(2)
@@ -199,7 +199,7 @@ class BasePersistenceTest(unittest2.TestCase):
         self.assertListEqualObj(vols, self.sorted(res))
 
     def test_set_snapshot(self):
-        raise NotImplemented('Test class must implement this method')
+        raise NotImplementedError('Test class must implement this method')
 
     def get_snapshots_all(self):
         snaps = self.create_snapshots()
@@ -277,7 +277,7 @@ class BasePersistenceTest(unittest2.TestCase):
         self.assertListEqualObj(snaps, self.sorted(res))
 
     def test_set_connection(self):
-        raise NotImplemented('Test class must implement this method')
+        raise NotImplementedError('Test class must implement this method')
 
     def get_connections_all(self):
         conns = self.create_connections()
@@ -341,7 +341,7 @@ class BasePersistenceTest(unittest2.TestCase):
         self.assertListEqualObj(conns, self.sorted(res))
 
     def test_set_key_values(self):
-        raise NotImplemented('Test class must implement this method')
+        raise NotImplementedError('Test class must implement this method')
 
     def assertKVsEqual(self, expected, actual):
         if len(expected) == len(actual):
