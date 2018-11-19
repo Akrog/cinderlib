@@ -24,7 +24,7 @@ The method definition is as follows:
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
                      project_id=None, user_id=None, persistence_config=None,
-                     fail_on_missing_backend=True, **log_params):
+                     fail_on_missing_backend=True, host=None, **log_params):
 
 The meaning of the library's configuration options are:
 
@@ -165,6 +165,22 @@ initialization.
 
 This is useful if we are sharing the metadata persistence storage and we want
 to load a volume that is already connected to do just the attachment.
+
+host
+----
+
+Host configuration option used for all volumes created by this cinderlib
+execution.
+
+On cinderlib volumes are selected based on the backend name, not on the
+host@backend combination like cinder does.  Therefore backend names must be
+unique across all cinderlib applications that are using the same persistence
+storage backend.
+
+A second application running cinderlib with a different host value will have
+access to the same resources if it uses the same backend name.
+
+Defaults to the host's hostname.
 
 other keyword arguments
 -----------------------

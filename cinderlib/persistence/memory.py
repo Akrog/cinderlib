@@ -31,10 +31,17 @@ class MemoryPersistence(persistence_base.PersistenceDriverBase):
     def db(self):
         return self.fake_db
 
+    @staticmethod
+    def _get_field(res, field):
+        res = getattr(res, field)
+        if field == 'host':
+            res = res.split('@')[1].split('#')[0]
+        return res
+
     def _filter_by(self, values, field, value):
         if not value:
             return values
-        return [res for res in values if getattr(res, field) == value]
+        return [res for res in values if self._get_field(res, field) == value]
 
     def get_volumes(self, volume_id=None, volume_name=None, backend_name=None):
         try:
@@ -43,7 +50,7 @@ class MemoryPersistence(persistence_base.PersistenceDriverBase):
         except KeyError:
             return []
         res = self._filter_by(res, 'display_name', volume_name)
-        res = self._filter_by(res, 'availability_zone', backend_name)
+        res = self._filter_by(res, 'host', backend_name)
         return res
 
     def get_snapshots(self, snapshot_id=None, snapshot_name=None,

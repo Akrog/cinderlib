@@ -37,10 +37,10 @@ from cinderlib import exception
 LOG = logging.getLogger(__name__)
 DEFAULT_PROJECT_ID = 'cinderlib'
 DEFAULT_USER_ID = 'cinderlib'
-BACKEND_NAME_VOLUME_FIELD = 'availability_zone'
 BACKEND_NAME_SNAPSHOT_FIELD = 'progress'
 CONNECTIONS_OVO_FIELD = 'volume_attachment'
 
+CONFIGURED_HOST = 'cinderlib'
 
 # This cannot go in the setup method because cinderlib objects need them to
 # be setup to set OVO_CLASS
@@ -265,7 +265,6 @@ class Volume(NamedObject):
         'size': 1,
         'user_id': Object.CONTEXT.user_id,
         'project_id': Object.CONTEXT.project_id,
-        'host': volume_cmd.CONF.host,
         'status': 'creating',
         'attach_status': 'detached',
         'metadata': {},
@@ -279,14 +278,14 @@ class Volume(NamedObject):
     def __init__(self, backend_or_vol, **kwargs):
         # Accept backend name for convenience
         if isinstance(backend_or_vol, six.string_types):
-            kwargs.setdefault(BACKEND_NAME_VOLUME_FIELD, backend_or_vol)
+            kwargs.setdefault('host',
+                              '%s@%s' % (CONFIGURED_HOST, backend_or_vol))
             backend_or_vol = self._get_backend(backend_or_vol)
         elif isinstance(backend_or_vol, self.backend_class):
-            kwargs.setdefault(BACKEND_NAME_VOLUME_FIELD, backend_or_vol.id)
+            kwargs.setdefault('host',
+                              '%s@%s' % (CONFIGURED_HOST, backend_or_vol.id))
         # Accept a volume as additional source data
         elif isinstance(backend_or_vol, Volume):
-            # Availability zone (backend) will be the same as the source
-            kwargs.pop(BACKEND_NAME_VOLUME_FIELD, None)
             for key in backend_or_vol._ovo.fields:
                 if (backend_or_vol._ovo.obj_attr_is_set(key) and
                         key not in self._ignore_keys):

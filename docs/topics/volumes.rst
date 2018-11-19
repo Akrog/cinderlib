@@ -107,8 +107,11 @@ Some of the fields we could be interested in are:
 - `snapshot_id`: ID of the source snapshot used to create the volume.  This
   will be filled by *cinderlib*.
 
-- `host`: In *Cinder* used to store the *host@backend#pool* information, here
-  we can just keep some identification of the process that wrote this.
+- `host`: Used to store the backend name information together with the host
+  name where cinderlib is running.  This information is stored as a string in
+  the form of *host@backend*.  This is an optional parameter, and passing it to
+  `create_volume` will override default value. Issues will arise if parameter
+  doesn't contain correct information.
 
 - `size`: Volume size in GBi.
 

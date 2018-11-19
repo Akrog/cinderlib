@@ -82,16 +82,26 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         return {key: value for key, value in kwargs.items() if value}
 
     def get_volumes(self, volume_id=None, volume_name=None, backend_name=None):
+        if backend_name:
+            host = '%s@%s' % (objects.CONFIGURED_HOST, backend_name)
+        else:
+            host = None
         filters = self._build_filter(id=volume_id, display_name=volume_name,
-                                     availability_zone=backend_name)
+                                     host=host)
         LOG.debug('get_volumes for %s', filters)
         ovos = cinder_objs.VolumeList.get_all(objects.CONTEXT, filters=filters)
-        result = [objects.Volume(ovo.availability_zone, __ovo=ovo)
-                  for ovo in ovos.objects]
-        for r in result:
-            if r.volume_type_id:
-                r.volume_type.extra_specs  # Trigger extra specs load
-                r.volume_type.qos_specs  # Trigger qos specs load
+        result = []
+        for ovo in ovos:
+            # We have stored the backend reversed with the host, switch it back
+            backend = ovo.host.split('@')[1].split('#')[0]
+
+            # Trigger lazy loading of specs
+            if ovo.volume_type_id:
+                ovo.volume_type.extra_specs
+                ovo.volume_type.qos_specs
+
+            result.append(objects.Volume(backend, __ovo=ovo))
+
         return result
 
     def get_snapshots(self, snapshot_id=None, snapshot_name=None,

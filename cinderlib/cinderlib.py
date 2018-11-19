@@ -66,7 +66,7 @@ class Backend(object):
             conf.volume_driver,
             configuration=conf,
             db=self.persistence.db,
-            host=volume_cmd.CONF.host,
+            host='%s@%s' % (objects.CONFIGURED_HOST, volume_backend_name),
             cluster_name=None,  # No clusters for now: volume_cmd.CONF.cluster,
             active_backend_id=None)  # No failover for now
         self.driver.do_setup(objects.CONTEXT)
@@ -141,7 +141,7 @@ class Backend(object):
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
                      project_id=None, user_id=None, persistence_config=None,
-                     fail_on_missing_backend=True, **log_params):
+                     fail_on_missing_backend=True, host=None, **log_params):
         # Global setup can only be set once
         if cls.global_initialization:
             raise Exception('Already setup')
@@ -151,6 +151,7 @@ class Backend(object):
         cls.project_id = project_id
         cls.user_id = user_id
         cls.non_uuid_ids = non_uuid_ids
+        objects.CONFIGURED_HOST = host or volume_cmd.CONF.host
 
         cls.set_persistence(persistence_config)
 
