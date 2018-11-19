@@ -24,7 +24,7 @@ The method definition is as follows:
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
                      project_id=None, user_id=None, persistence_config=None,
-                     **log_params):
+                     fail_on_missing_backend=True, **log_params):
 
 The meaning of the library's configuration options are:
 
