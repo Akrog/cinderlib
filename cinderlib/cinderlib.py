@@ -76,6 +76,14 @@ class Backend(object):
         self.driver.set_initialized()
         self._driver_cfg = driver_cfg
         self._volumes = None
+        # init_capabilities already calls get_volume_stats with refresh=True
+        # so we can call it without refresh to get pool names.
+        self._pool_names = tuple(pool['pool_name']
+                                 for pool in self.get_volume_stats()['pools'])
+
+    @property
+    def pool_names(self):
+        return self._pool_names
 
     def __repr__(self):
         return '<cinderlib.Backend %s>' % self.id

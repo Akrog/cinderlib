@@ -13,6 +13,7 @@ History
 
   - Provide better message when device is not available.
   - Backend name stored in host instead of in the AZ (backward incompatible).
+  - Support multi-pool drivers.
 
 0.2.2 (2018-07-24)
 ------------------

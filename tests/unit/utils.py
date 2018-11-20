@@ -24,3 +24,4 @@ class FakeBackend(cinderlib.Backend):
         cinderlib.Backend.backends[driver_name] = self
         self._driver_cfg = {'volume_backend_name': driver_name}
         self.driver = mock.Mock()
+        self._pool_names = (driver_name,)

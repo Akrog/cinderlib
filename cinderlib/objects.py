@@ -275,17 +275,16 @@ class Volume(NamedObject):
 
     _ignore_keys = ('id', CONNECTIONS_OVO_FIELD, 'snapshots')
 
-    def __init__(self, backend_or_vol, **kwargs):
+    def __init__(self, backend_or_vol, pool_name=None, **kwargs):
         # Accept backend name for convenience
         if isinstance(backend_or_vol, six.string_types):
-            kwargs.setdefault('host',
-                              '%s@%s' % (CONFIGURED_HOST, backend_or_vol))
+            backend_name = backend_or_vol
             backend_or_vol = self._get_backend(backend_or_vol)
         elif isinstance(backend_or_vol, self.backend_class):
-            kwargs.setdefault('host',
-                              '%s@%s' % (CONFIGURED_HOST, backend_or_vol.id))
-        # Accept a volume as additional source data
+            backend_name = backend_or_vol.id
         elif isinstance(backend_or_vol, Volume):
+            backend_name, pool = backend_or_vol._ovo.host.split('#')
+            pool_name = pool_name or pool
             for key in backend_or_vol._ovo.fields:
                 if (backend_or_vol._ovo.obj_attr_is_set(key) and
                         key not in self._ignore_keys):
@@ -306,6 +305,13 @@ class Volume(NamedObject):
         super(Volume, self).__init__(backend_or_vol, **kwargs)
         self._populate_data()
         self.local_attach = None
+
+        # If we overwrote the host, then we ignore pool_name and don't set a
+        # default value or copy the one from the source either.
+        if 'host' not in kwargs and '__ovo' not in kwargs:
+            pool_name = pool_name or backend_or_vol.pool_names[0]
+            self._ovo.host = ('%s@%s#%s' %
+                              (CONFIGURED_HOST, backend_name, pool_name))
 
         if qos_specs or extra_specs:
             if qos_specs:

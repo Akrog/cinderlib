@@ -253,4 +253,9 @@ relevant sections:
 
 - `global_setup` has been covered in the :doc:`initialization` section.
 
+- `pool_names` tuple with all the pools available in the driver.  Non pool
+  aware drivers will have only 1 pool and use the name of the backend as its
+  name.  Pool aware drivers may report multiple values, which can be passed to
+  the `create_volume` method in the `pool_name` parameter.
+
 .. _OpenStack's Cinder volume driver configuration documentation: https://docs.openstack.org/cinder/latest/configuration/block-storage/volume-drivers.html
