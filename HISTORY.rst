@@ -2,7 +2,7 @@
 History
 =======
 
-0.2.3 (2018-MM-DD)
+0.3.0 (2019-01-14)
 ------------------
 
 - Bug fixes:
@@ -14,6 +14,8 @@ History
   - Provide better message when device is not available.
   - Backend name stored in host instead of in the AZ (backward incompatible).
   - Support multi-pool drivers.
+  - Support QoS
+  - Support extra specs
 
 0.2.2 (2018-07-24)
 ------------------

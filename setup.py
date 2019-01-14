@@ -55,7 +55,7 @@ extras = {
 
 setuptools.setup(
     name='cinderlib',
-    version='0.2.2',
+    version='0.3.0',
     description=("Cinder Library allows using storage drivers outside of "
                  "Cinder."),
     long_description=readme + '\n\n' + history,
@@ -70,7 +70,7 @@ setuptools.setup(
     zip_safe=False,
     keywords='cinderlib',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
