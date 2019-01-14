@@ -18,10 +18,13 @@ import os
 import subprocess
 import tempfile
 
+from oslo_config import cfg
+import six
 import unittest2
 import yaml
 
 import cinderlib
+from cinderlib.tests.functional import cinder_to_yaml
 
 
 def set_backend(func, new_name, backend_name):
@@ -35,6 +38,7 @@ def set_backend(func, new_name, backend_name):
 
 
 def test_all_backends(cls):
+    """Decorator to run tests in a class for all available backends."""
     config = BaseFunctTestCase.ensure_config_loaded()
     for fname, func in cls.__dict__.items():
         if fname.startswith('test_'):
@@ -47,44 +51,55 @@ def test_all_backends(cls):
 
 
 class BaseFunctTestCase(unittest2.TestCase):
-    DEFAULTS = {'logs': False, 'venv_sudo': False, 'size_precision': 0}
     FNULL = open(os.devnull, 'w')
-    CONFIG_FILE = os.environ.get('CL_FTEST_CFG', 'tests/functional/lvm.yaml')
+    CONFIG_FILE = os.environ.get('CL_FTEST_CFG', '/etc/cinder/cinder.conf')
+    PRECISION = os.environ.get('CL_FTEST_PRECISION', 0)
+    LOGGING_ENABLED = os.environ.get('CL_FTEST_LOGGING', False)
+    ROOT_HELPER = os.environ.get('CL_FTEST_ROOT_HELPER', 'sudo')
     tests_config = None
 
     @classmethod
     def ensure_config_loaded(cls):
         if not cls.tests_config:
-            # Read backend configuration file
-            with open(cls.CONFIG_FILE, 'r') as f:
-                cls.tests_config = yaml.load(f)
-            # Set configuration default values
-            for k, v in cls.DEFAULTS.items():
-                cls.tests_config.setdefault(k, v)
+            # If it's a .conf type of configuration file convert it to dict
+            if cls.CONFIG_FILE.endswith('.conf'):
+                cls.tests_config = cinder_to_yaml.convert(cls.CONFIG_FILE)
+            else:
+                with open(cls.CONFIG_FILE, 'r') as f:
+                    cls.tests_config = yaml.load(f)
+            cls.tests_config.setdefault('logs', cls.LOGGING_ENABLED)
+            cls.tests_config.setdefault('size_precision', cls.PRECISION)
         return cls.tests_config
+
+    @staticmethod
+    def _replace_oslo_cli_parse():
+        original_cli_parser = cfg.ConfigOpts._parse_cli_opts
+
+        def _parse_cli_opts(self, args):
+            return original_cli_parser(self, [])
+
+        cfg.ConfigOpts._parse_cli_opts = six.create_unbound_method(
+            _parse_cli_opts, cfg.ConfigOpts)
 
     @classmethod
     def setUpClass(cls):
+        cls._replace_oslo_cli_parse()
         config = cls.ensure_config_loaded()
-
-        if config['venv_sudo']:
-            # NOTE(geguileo): For some drivers need to use a custom sudo script
-            # to find virtualenv commands (ie: cinder-rtstool).
-            path = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
-            sudo_tool = os.path.join(path, '../../tools/virtualenv-sudo.sh')
-            cls.root_helper = os.path.abspath(sudo_tool)
-        else:
-            cls.root_helper = 'sudo'
-        cinderlib.setup(root_helper=cls.root_helper,
-                        disable_logs=not config['logs'])
+        # Use memory_db persistence instead of memory to ensure migrations work
+        cinderlib.setup(root_helper=cls.ROOT_HELPER,
+                        disable_logs=not config['logs'],
+                        persistence_config={'storage': 'memory_db'})
 
         # Initialize backends
         cls.backends = [cinderlib.Backend(**cfg) for cfg in
                         config['backends']]
+        # Lazy load backend's _volumes variable using the volumes property so
+        # new volumes are added to this list on successful creation.
+        for backend in cls.backends:
+            backend.volumes
 
         # Set current backend, by default is the first
         cls.backend = cls.backends[0]
-
         cls.size_precision = config['size_precision']
 
     @classmethod
@@ -131,7 +146,7 @@ class BaseFunctTestCase(unittest2.TestCase):
             raise Exception('Errors on test cleanup: %s' % '\n\t'.join(errors))
 
     def _root_execute(self, *args, **kwargs):
-        cmd = [self.root_helper]
+        cmd = [self.ROOT_HELPER]
         cmd.extend(args)
         cmd.extend("%s=%s" % (k, v) for k, v in kwargs.items())
         return subprocess.check_output(cmd, stderr=self.FNULL)
@@ -187,7 +202,7 @@ class BaseFunctTestCase(unittest2.TestCase):
 
     def _write_data(self, vol, data=None, do_detach=True):
         if not data:
-            data = '0123456789' * 100
+            data = b'0123456789' * 100
 
         if not vol.local_attach:
             vol.attach()

@@ -28,6 +28,7 @@ import six
 
 from cinder.objects import base as cinder_base_ovo
 from oslo_versionedobjects import base as base_ovo
+from oslo_versionedobjects import fields as ovo_fields
 
 from cinderlib import objects
 
@@ -67,13 +68,23 @@ def wrap_to_primitive(cls):
     setattr(cls, 'to_primitive', staticmethod(to_primitive))
 
 
+def _set_visited(element, visited):
+    # visited keeps track of elements visited to prevent loops
+    if visited is None:
+        visited = set()
+    # We only care about complex object that can have loops, others are ignored
+    # to prevent us from not serializing simple objects, such as booleans, that
+    # can have the same instance used for multiple fields.
+    if isinstance(element,
+                  (ovo_fields.ObjectField, cinder_base_ovo.CinderObject)):
+        visited.add(id(element))
+    return visited
+
+
 def obj_to_primitive(self, target_version=None,
                      version_manifest=None, visited=None):
     # No target_version, version_manifest, or changes support
-    if visited is None:
-        visited = set()
-    visited.add(id(self))
-
+    visited = _set_visited(self, visited)
     primitive = {}
     for name, field in self.fields.items():
         if self.obj_attr_is_set(name):
@@ -120,29 +131,24 @@ def field_to_primitive(self, obj, attr, value, visited=None):
 
 
 def iterable_to_primitive(self, obj, attr, value, visited=None):
-    if visited is None:
-        visited = set()
-    visited.add(id(value))
+    visited = _set_visited(self, visited)
     result = []
     for elem in value:
         if id(elem) in visited:
             continue
-        visited.add(id(elem))
+        _set_visited(elem, visited)
         r = self._element_type.to_primitive(obj, attr, elem, visited)
         result.append(r)
     return result
 
 
 def dict_to_primitive(self, obj, attr, value, visited=None):
-    if visited is None:
-        visited = set()
-    visited.add(id(value))
-
+    visited = _set_visited(self, visited)
     primitive = {}
     for key, elem in value.items():
         if id(elem) in visited:
             continue
-        visited.add(id(elem))
+        _set_visited(elem, visited)
         primitive[key] = self._element_type.to_primitive(
             obj, '%s["%s"]' % (attr, key), elem, visited)
     return primitive

@@ -1,3 +1,4 @@
+ddt>=1.0.1
 unittest2
 pyyaml
 pip==8.1.2

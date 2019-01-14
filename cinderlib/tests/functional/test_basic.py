@@ -202,15 +202,3 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
         read_data = self._read_data(new_vol, len(data))
         self.assertEqual(original_size, created_size)
         self.assertEqual(data, read_data)
-
-    def test_connect_disconnect_volume(self):
-        # TODO(geguileo): Implement the test
-        pass
-
-    def test_connect_disconnect_multiple_volumes(self):
-        # TODO(geguileo): Implement the test
-        pass
-
-    def test_connect_disconnect_multiple_times(self):
-        # TODO(geguileo): Implement the test
-        pass
