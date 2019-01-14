@@ -21,7 +21,7 @@ from oslo_db import api as oslo_db_api
 
 import cinderlib
 from cinderlib.persistence import dbms
-from tests.unit.persistence import base
+from cinderlib.tests.unit.persistence import base
 
 
 class TestDBPersistence(base.BasePersistenceTest):
@@ -105,6 +105,5 @@ class TestDBPersistence(base.BasePersistenceTest):
         self.assertListEqualObj(expected, actual)
 
 
-# TODO: Figure out why we can't run both DB persistence test classes
-# class TestMemoryDBPersistence(TestDBPersistence):
-#     PERSISTENCE_CFG = {'storage': 'memory_db'}
+class TestMemoryDBPersistence(TestDBPersistence):
+    PERSISTENCE_CFG = {'storage': 'memory_db'}

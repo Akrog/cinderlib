@@ -15,18 +15,17 @@
 
 from __future__ import absolute_import
 import json as json_lib
+import sys
 import uuid
 
 from cinder import context
-# NOTE(geguileo): Probably a good idea not to depend on cinder.cmd.volume
-# having all the other imports as they could change.
-from cinder.cmd import volume as volume_cmd
-from cinder import objects as cinder_objs
 from cinder import exception as cinder_exception
+from cinder import objects as cinder_objs
 from cinder.objects import base as cinder_base_ovo
 from os_brick import exception as brick_exception
 from os_brick import initiator as brick_initiator
 from os_brick.initiator import connector as brick_connector
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import timeutils
 import six
@@ -40,11 +39,9 @@ DEFAULT_USER_ID = 'cinderlib'
 BACKEND_NAME_SNAPSHOT_FIELD = 'progress'
 CONNECTIONS_OVO_FIELD = 'volume_attachment'
 
-CONFIGURED_HOST = 'cinderlib'
-
 # This cannot go in the setup method because cinderlib objects need them to
 # be setup to set OVO_CLASS
-volume_cmd.objects.register_all()
+cinder_objs.register_all()
 
 
 class KeyValue(object):
@@ -58,6 +55,7 @@ class KeyValue(object):
 
 class Object(object):
     """Base class for our resource representation objects."""
+    SIMPLE_JSON_IGNORE = tuple()
     DEFAULT_FIELDS_VALUES = {}
     LAZY_PROPERTIES = tuple()
     backend_class = None
@@ -107,7 +105,7 @@ class Object(object):
         # Configure OVOs to support non_uuid_ids
         if non_uuid_ids:
             for ovo_name in cinder_base_ovo.CinderObjectRegistry.obj_classes():
-                ovo_cls = getattr(volume_cmd.objects, ovo_name)
+                ovo_cls = getattr(cinder_objs, ovo_name)
                 if 'id' in ovo_cls.fields:
                     ovo_cls.fields['id'] = cinder_base_ovo.fields.StringField()
 
@@ -142,14 +140,28 @@ class Object(object):
 
     @property
     def json(self):
-        ovo = self._ovo.obj_to_primitive()
+        return self.to_json(simplified=False)
+
+    def to_json(self, simplified=True):
+        visited = set()
+        if simplified:
+            for field in self.SIMPLE_JSON_IGNORE:
+                if self._ovo.obj_attr_is_set(field):
+                    visited.add(id(getattr(self._ovo, field)))
+        ovo = self._ovo.obj_to_primitive(visited=visited)
         return {'class': type(self).__name__,
-                'backend': getattr(self.backend, 'config', self.backend),
+                # If no driver loaded, just return the name of the backend
+                'backend': getattr(self.backend, 'config',
+                                   {'volume_backend_name': self.backend}),
                 'ovo': ovo}
 
     @property
     def jsons(self):
-        return json_lib.dumps(self.json, separators=(',', ':'))
+        return self.to_jsons(simplified=False)
+
+    def to_jsons(self, simplified=True):
+        json_data = self.to_json(simplified)
+        return json_lib.dumps(json_data, separators=(',', ':'))
 
     def _only_ovo_data(self, ovo):
         if isinstance(ovo, dict):
@@ -204,6 +216,11 @@ class Object(object):
             raise AttributeError('Attribute _ovo is not yet set')
         return getattr(self._ovo, name)
 
+    def _raise_with_resource(self):
+        exc_info = sys.exc_info()
+        exc_info[1].resource = self
+        six.reraise(*exc_info)
+
 
 class NamedObject(Object):
     def __init__(self, backend, **fields_data):
@@ -228,6 +245,7 @@ class NamedObject(Object):
 
 class LazyVolumeAttr(object):
     LAZY_PROPERTIES = ('volume',)
+    _volume = None
 
     def __init__(self, volume):
         if volume:
@@ -260,7 +278,8 @@ class LazyVolumeAttr(object):
 
 
 class Volume(NamedObject):
-    OVO_CLASS = volume_cmd.objects.Volume
+    OVO_CLASS = cinder_objs.Volume
+    SIMPLE_JSON_IGNORE = ('snapshots', 'volume_attachment')
     DEFAULT_FIELDS_VALUES = {
         'size': 1,
         'user_id': Object.CONTEXT.user_id,
@@ -273,7 +292,7 @@ class Volume(NamedObject):
     }
     LAZY_PROPERTIES = ('snapshots', 'connections')
 
-    _ignore_keys = ('id', CONNECTIONS_OVO_FIELD, 'snapshots')
+    _ignore_keys = ('id', CONNECTIONS_OVO_FIELD, 'snapshots', 'volume_type')
 
     def __init__(self, backend_or_vol, pool_name=None, **kwargs):
         # Accept backend name for convenience
@@ -283,19 +302,27 @@ class Volume(NamedObject):
         elif isinstance(backend_or_vol, self.backend_class):
             backend_name = backend_or_vol.id
         elif isinstance(backend_or_vol, Volume):
-            backend_name, pool = backend_or_vol._ovo.host.split('#')
+            backend_str, pool = backend_or_vol._ovo.host.split('#')
+            backend_name = backend_str.split('@')[-1]
             pool_name = pool_name or pool
             for key in backend_or_vol._ovo.fields:
                 if (backend_or_vol._ovo.obj_attr_is_set(key) and
                         key not in self._ignore_keys):
                     kwargs.setdefault(key, getattr(backend_or_vol._ovo, key))
+            if backend_or_vol.volume_type:
+                kwargs.setdefault('extra_specs',
+                                  backend_or_vol.volume_type.extra_specs)
+                if backend_or_vol.volume_type.qos_specs:
+                    kwargs.setdefault(
+                        'qos_specs',
+                        backend_or_vol.volume_type.qos_specs.specs)
             backend_or_vol = backend_or_vol.backend
 
         if '__ovo' not in kwargs:
             kwargs[CONNECTIONS_OVO_FIELD] = (
-                volume_cmd.objects.VolumeAttachmentList(context=self.CONTEXT))
+                cinder_objs.VolumeAttachmentList(context=self.CONTEXT))
             kwargs['snapshots'] = (
-                volume_cmd.objects.SnapshotList(context=self.CONTEXT))
+                cinder_objs.SnapshotList(context=self.CONTEXT))
             self._snapshots = []
             self._connections = []
 
@@ -309,9 +336,10 @@ class Volume(NamedObject):
         # If we overwrote the host, then we ignore pool_name and don't set a
         # default value or copy the one from the source either.
         if 'host' not in kwargs and '__ovo' not in kwargs:
+            # TODO(geguileo): Add pool support
             pool_name = pool_name or backend_or_vol.pool_names[0]
             self._ovo.host = ('%s@%s#%s' %
-                              (CONFIGURED_HOST, backend_name, pool_name))
+                              (cfg.CONF.host, backend_name, pool_name))
 
         if qos_specs or extra_specs:
             if qos_specs:
@@ -406,6 +434,7 @@ class Volume(NamedObject):
         return vol
 
     def create(self):
+        self.backend._start_creating_volume(self)
         try:
             model_update = self.backend.driver.create_volume(self._ovo)
             self._ovo.status = 'available'
@@ -414,22 +443,23 @@ class Volume(NamedObject):
             self.backend._volume_created(self)
         except Exception:
             self._ovo.status = 'error'
-            # TODO: raise with the vol info
-            raise
+            self._raise_with_resource()
         finally:
             self.save()
 
     def delete(self):
-        # Some backends delete existing snapshots while others leave them
+        if self.snapshots:
+            msg = 'Cannot delete volume %s with snapshots' % self.id
+            raise exception.InvalidVolume(reason=msg)
         try:
             self.backend.driver.delete_volume(self._ovo)
             self.persistence.delete_volume(self)
             self.backend._volume_removed(self)
+            self.status = 'deleted'
         except Exception:
-            # We don't change status to error on deletion error, we assume it
-            # just didn't complete.
-            # TODO: raise with the vol info
-            raise
+            self.status = 'error_deleting'
+            self.save()
+            self._raise_with_resource()
 
     def extend(self, size):
         volume = self._ovo
@@ -442,14 +472,14 @@ class Volume(NamedObject):
             volume.previous_status = None
         except Exception:
             volume.status = 'error'
-            # TODO: raise with the vol info
-            raise
+            self._raise_with_resource()
         finally:
             self.save()
 
     def clone(self, **new_vol_attrs):
         new_vol_attrs['source_vol_id'] = self.id
         new_vol = Volume(self, **new_vol_attrs)
+        self.backend._start_creating_volume(new_vol)
         try:
             model_update = self.backend.driver.create_cloned_volume(
                 new_vol._ovo, self._ovo)
@@ -459,24 +489,25 @@ class Volume(NamedObject):
             self.backend._volume_created(new_vol)
         except Exception:
             new_vol.status = 'error'
-            # TODO: raise with the new volume info
-            raise
+            new_vol._raise_with_resource()
         finally:
             new_vol.save()
         return new_vol
 
     def create_snapshot(self, name='', description='', **kwargs):
         snap = Snapshot(self, name=name, description=description, **kwargs)
-        snap.create()
-        if self._snapshots is not None:
-            self._snapshots.append(snap)
-            self._ovo.snapshots.objects.append(snap._ovo)
+        try:
+            snap.create()
+        finally:
+            if self._snapshots is not None:
+                self._snapshots.append(snap)
+                self._ovo.snapshots.objects.append(snap._ovo)
         return snap
 
     def attach(self):
         connector_dict = brick_connector.get_connector_properties(
             self.backend_class.root_helper,
-            volume_cmd.CONF.my_ip,
+            cfg.CONF.my_ip,
             self.backend.configuration.use_multipath_for_image_xfer,
             self.backend.configuration.enforce_multipath_for_image_xfer)
         conn = self.connect(connector_dict)
@@ -489,7 +520,7 @@ class Volume(NamedObject):
 
     def detach(self, force=False, ignore_errors=False):
         if not self.local_attach:
-            raise Exception('Not attached')
+            raise exception.NotLocal(self.id)
         exc = brick_exception.ExceptionChainer()
 
         conn = self.local_attach
@@ -523,13 +554,12 @@ class Volume(NamedObject):
             self.save()
         except Exception:
             self._remove_export()
-            # TODO: Improve raised exception
-            raise
+            self._raise_with_resource()
         return conn
 
     def _disconnect(self, connection):
         self._remove_export()
-        if self._connections is not None:
+        if self._connections:
             self._connections.remove(connection)
             ovo_conns = getattr(self._ovo, CONNECTIONS_OVO_FIELD).objects
             ovo_conns.remove(connection._ovo)
@@ -543,7 +573,7 @@ class Volume(NamedObject):
         self._disconnect(connection)
 
     def cleanup(self):
-        for attach in self.attachments:
+        for attach in self.connections:
             attach.detach()
         self._remove_export()
 
@@ -574,7 +604,8 @@ class Connection(Object, LazyVolumeAttr):
          'connector': connector dictionary
          'device': result of connect_volume}
     """
-    OVO_CLASS = volume_cmd.objects.VolumeAttachment
+    OVO_CLASS = cinder_objs.VolumeAttachment
+    SIMPLE_JSON_IGNORE = ('volume',)
 
     @classmethod
     def connect(cls, volume, connector, **kwargs):
@@ -613,7 +644,7 @@ class Connection(Object, LazyVolumeAttr):
             return connector['multipath']
 
         # If multipathed not defined autodetect based on connection info
-        conn_info = conn_info['conn']['data']
+        conn_info = conn_info['conn'].get('data', {})
         iscsi_mp = 'target_iqns' in conn_info and 'target_portals' in conn_info
         fc_mp = not isinstance(conn_info.get('target_wwn', ''),
                                six.string_types)
@@ -624,7 +655,7 @@ class Connection(Object, LazyVolumeAttr):
 
         scan_attempts = brick_initiator.DEVICE_SCAN_ATTEMPTS_DEFAULT
         self.scan_attempts = kwargs.pop('device_scan_attempts', scan_attempts)
-        volume = kwargs.pop('volume')
+        volume = kwargs.pop('volume', None)
         self._connector = None
 
         super(Connection, self).__init__(*args, **kwargs)
@@ -659,6 +690,8 @@ class Connection(Object, LazyVolumeAttr):
 
     @connector_info.setter
     def connector_info(self, value):
+        if self._ovo.connection_info is None:
+            self._ovo.connection_info = {}
         self.connection_info['connector'] = value
         # Since we are changing the dictionary the OVO won't detect the change
         self._changed_fields.add('connection_info')
@@ -801,7 +834,8 @@ class Connection(Object, LazyVolumeAttr):
 
 
 class Snapshot(NamedObject, LazyVolumeAttr):
-    OVO_CLASS = volume_cmd.objects.Snapshot
+    OVO_CLASS = cinder_objs.Snapshot
+    SIMPLE_JSON_IGNORE = ('volume',)
     DEFAULT_FIELDS_VALUES = {
         'status': 'creating',
         'metadata': {},
@@ -856,8 +890,7 @@ class Snapshot(NamedObject, LazyVolumeAttr):
                 self._ovo.update(model_update)
         except Exception:
             self._ovo.status = 'error'
-            # TODO: raise with the vol info
-            raise
+            self._raise_with_resource()
         finally:
             self.save()
 
@@ -865,11 +898,11 @@ class Snapshot(NamedObject, LazyVolumeAttr):
         try:
             self.backend.driver.delete_snapshot(self._ovo)
             self.persistence.delete_snapshot(self)
+            self.status = 'deleted'
         except Exception:
-            # We don't change status to error on deletion error, we assume it
-            # just didn't complete.
-            # TODO: raise with the snap info
-            raise
+            self.status = 'error_deleting'
+            self.save()
+            self._raise_with_resource()
         if self._volume is not None and self._volume._snapshots is not None:
             try:
                 self._volume._snapshots.remove(self)
@@ -881,6 +914,7 @@ class Snapshot(NamedObject, LazyVolumeAttr):
         new_vol_params.setdefault('size', self.volume_size)
         new_vol_params['snapshot_id'] = self.id
         new_vol = Volume(self.volume, **new_vol_params)
+        self.backend._start_creating_volume(new_vol)
         try:
             model_update = self.backend.driver.create_volume_from_snapshot(
                 new_vol._ovo, self._ovo)
@@ -890,8 +924,7 @@ class Snapshot(NamedObject, LazyVolumeAttr):
             self.backend._volume_created(new_vol)
         except Exception:
             new_vol._ovo.status = 'error'
-            # TODO: raise with the new volume info
-            raise
+            new_vol._raise_with_resource()
         finally:
             new_vol.save()
 

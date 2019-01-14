@@ -17,12 +17,12 @@ from __future__ import absolute_import
 
 import logging
 
-from cinder.cmd import volume as volume_cmd
 from cinder.db import api as db_api
 from cinder.db import migration
 from cinder.db.sqlalchemy import api as sqla_api
 from cinder.db.sqlalchemy import models
 from cinder import objects as cinder_objs
+from oslo_config import cfg
 from oslo_db import exception
 from oslo_log import log
 
@@ -40,13 +40,18 @@ class KeyValue(models.BASE, models.models.ModelBase, objects.KeyValue):
 
 
 class DBPersistence(persistence_base.PersistenceDriverBase):
+    GET_METHODS_PER_DB_MODEL = {
+        cinder_objs.VolumeType.model: 'volume_type_get',
+        cinder_objs.QualityOfServiceSpecs.model: 'qos_specs_get',
+    }
+
     def __init__(self, connection, sqlite_synchronous=True,
                  soft_deletes=False):
         self.soft_deletes = soft_deletes
-        volume_cmd.CONF.set_override('connection', connection, 'database')
-        volume_cmd.CONF.set_override('sqlite_synchronous',
-                                     sqlite_synchronous,
-                                     'database')
+        cfg.CONF.set_override('connection', connection, 'database')
+        cfg.CONF.set_override('sqlite_synchronous',
+                              sqlite_synchronous,
+                              'database')
 
         # Suppress logging for migration
         migrate_logger = logging.getLogger('migrate')
@@ -54,12 +59,46 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
 
         self._clear_facade()
         self.db_instance = db_api.oslo_db_api.DBAPI.from_config(
-            conf=volume_cmd.CONF, backend_mapping=db_api._BACKEND_MAPPING,
+            conf=cfg.CONF, backend_mapping=db_api._BACKEND_MAPPING,
             lazy=True)
+
+        # We need to wrap some get methods that get called before the volume is
+        # actually created.
+        self.original_vol_type_get = self.db_instance.volume_type_get
+        self.db_instance.volume_type_get = self.vol_type_get
+        self.original_qos_specs_get = self.db_instance.qos_specs_get
+        self.db_instance.qos_specs_get = self.qos_specs_get
+        self.original_get_by_id = self.db_instance.get_by_id
+        self.db_instance.get_by_id = self.get_by_id
 
         migration.db_sync()
         self._create_key_value_table()
         super(DBPersistence, self).__init__()
+
+    def vol_type_get(self, context, id, inactive=False,
+                     expected_fields=None):
+        if id not in objects.Backend._volumes_inflight:
+            return self.original_vol_type_get(context, id, inactive)
+
+        vol = objects.Backend._volumes_inflight[id]._ovo
+        if not vol.volume_type_id:
+            return None
+        return persistence_base.vol_type_to_dict(vol.volume_type)
+
+    def qos_specs_get(self, context, qos_specs_id, inactive=False):
+        if qos_specs_id not in objects.Backend._volumes_inflight:
+            return self.original_qos_specs_get(context, qos_specs_id, inactive)
+
+        vol = objects.Backend._volumes_inflight[qos_specs_id]._ovo
+        if not vol.volume_type_id:
+            return None
+        return persistence_base.vol_type_to_dict(vol.volume_type)['qos_specs']
+
+    def get_by_id(self, context, model, id, *args, **kwargs):
+        if model not in self.GET_METHODS_PER_DB_MODEL:
+            return self.original_get_by_id(context, model, id, *args, **kwargs)
+        method = getattr(self, self.GET_METHODS_PER_DB_MODEL[model])
+        return method(context, id)
 
     def _clear_facade(self):
         # This is for Pike
@@ -67,7 +106,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             sqla_api._FACADE = None
         # This is for Queens and Rocky (untested)
         elif hasattr(sqla_api, 'configure'):
-            sqla_api.configure(volume_cmd.CONF)
+            sqla_api.configure(cfg.CONF)
 
     def _create_key_value_table(self):
         models.BASE.metadata.create_all(sqla_api.get_engine(),
@@ -82,18 +121,15 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         return {key: value for key, value in kwargs.items() if value}
 
     def get_volumes(self, volume_id=None, volume_name=None, backend_name=None):
-        if backend_name:
-            host = '%s@%s' % (objects.CONFIGURED_HOST, backend_name)
-        else:
-            host = None
+        # Use the % wildcard to ignore the host name on the backend_name search
+        host = '%@' + backend_name if backend_name else None
         filters = self._build_filter(id=volume_id, display_name=volume_name,
                                      host=host)
         LOG.debug('get_volumes for %s', filters)
         ovos = cinder_objs.VolumeList.get_all(objects.CONTEXT, filters=filters)
         result = []
         for ovo in ovos:
-            # We have stored the backend reversed with the host, switch it back
-            backend = ovo.host.split('@')[1].split('#')[0]
+            backend = ovo.host.split('@')[-1].split('#')[0]
 
             # Trigger lazy loading of specs
             if ovo.volume_type_id:

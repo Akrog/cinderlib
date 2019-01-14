@@ -17,19 +17,26 @@ from __future__ import absolute_import
 import json as json_lib
 import logging
 import os
+import six
 
 from cinder import coordination
-# NOTE(geguileo): If we want to prevent eventlet from monkey_patching we would
-# need to do something about volume's L27-32.
-# NOTE(geguileo): Probably a good idea not to depend on cinder.cmd.volume
-# having all the other imports as they could change.
-from cinder.cmd import volume as volume_cmd
+from cinder.db import api as db_api
+from cinder import objects as cinder_objects
+
+# We need this here until we remove from cinder/volume/manager.py:
+# VA_LIST = objects.VolumeAttachmentList
+cinder_objects.register_all()  # noqa
+
 from cinder import utils
 from cinder.volume import configuration
-import nos_brick
+from cinder.volume import manager
+from oslo_config import cfg
+from oslo_log import log as oslo_logging
 from oslo_utils import importutils
 import urllib3
 
+import cinderlib
+from cinderlib import nos_brick
 from cinderlib import objects
 from cinderlib import persistence
 from cinderlib import serialization
@@ -54,6 +61,9 @@ class Backend(object):
     """
     backends = {}
     global_initialization = False
+    # Some drivers try access the DB directly for extra specs on creation.
+    # With this dictionary the DB class can get the necessary data
+    _volumes_inflight = {}
 
     def __init__(self, volume_backend_name, **driver_cfg):
         if not self.global_initialization:
@@ -61,13 +71,13 @@ class Backend(object):
         driver_cfg['volume_backend_name'] = volume_backend_name
         Backend.backends[volume_backend_name] = self
 
-        conf = self._get_config(**driver_cfg)
+        conf = self._set_backend_config(driver_cfg)
         self.driver = importutils.import_object(
             conf.volume_driver,
             configuration=conf,
             db=self.persistence.db,
-            host='%s@%s' % (objects.CONFIGURED_HOST, volume_backend_name),
-            cluster_name=None,  # No clusters for now: volume_cmd.CONF.cluster,
+            host='%s@%s' % (cfg.CONF.host, volume_backend_name),
+            cluster_name=None,  # We don't user cfg.CONF.cluster for now
             active_backend_id=None)  # No failover for now
         self.driver.do_setup(objects.CONTEXT)
         self.driver.check_for_setup_error()
@@ -79,7 +89,7 @@ class Backend(object):
         # init_capabilities already calls get_volume_stats with refresh=True
         # so we can call it without refresh to get pool names.
         self._pool_names = tuple(pool['pool_name']
-                                 for pool in self.get_volume_stats()['pools'])
+                                 for pool in self.stats()['pools'])
 
     @property
     def pool_names(self):
@@ -107,8 +117,18 @@ class Backend(object):
                                             volume_name=volume_name)
 
     def stats(self, refresh=False):
-        stats = self.driver.get_volume_stats(refresh=refresh)
-        return stats
+        stats_data = self.driver.get_volume_stats(refresh=refresh)
+        # Fill pools for legacy driver reports
+        if stats_data and 'pools' not in stats_data:
+            pool = stats_data.copy()
+            pool['pool_name'] = self.id
+            for key in ('driver_version', 'shared_targets',
+                        'sparse_copy_volume', 'storage_protocol',
+                        'vendor_name', 'volume_backend_name'):
+                pool.pop(key, None)
+            stats_data['pools'] = [pool]
+
+        return stats_data
 
     def create_volume(self, size, name='', description='', bootable=False,
                       **kwargs):
@@ -125,9 +145,14 @@ class Backend(object):
                     del self._volumes[i]
                     break
 
+    @classmethod
+    def _start_creating_volume(cls, volume):
+        cls._volumes_inflight[volume.id] = volume
+
     def _volume_created(self, volume):
         if self._volumes is not None:
             self._volumes.append(volume)
+        self._volumes_inflight.pop(volume.id, None)
 
     def validate_connector(self, connector_dict):
         """Raise exception if missing info for volume's connect call."""
@@ -144,12 +169,83 @@ class Backend(object):
         for backend in cls.backends.values():
             backend.driver.db = cls.persistence.db
 
+        # Replace the standard DB implementation instance with the one from
+        # the persistence plugin.
+        db_api.IMPL = cls.persistence.db
+
+    # NOTE(geguileo): Staticmethod used instead of classmethod to make it work
+    # on Python3 when assigning the unbound method.
+    @staticmethod
+    def _config_parse(self):
+        """Replacer oslo_config.cfg.ConfigParser.parse for in-memory cfg."""
+        res = super(cfg.ConfigParser, self).parse(Backend._config_string_io)
+        return res
+
+    @classmethod
+    def _update_cinder_config(cls):
+        """Parse in-memory file to update OSLO configuration used by Cinder."""
+        cls._config_string_io.seek(0)
+        cls._parser.write(cls._config_string_io)
+        cls._config_string_io.seek(0)
+        cfg.CONF.reload_config_files()
+
+    @classmethod
+    def _set_cinder_config(cls, host, locks_path, cinder_config_params):
+        """Setup the parser with all the known Cinder configuration."""
+        cfg.CONF.set_default('state_path', os.getcwd())
+        cfg.CONF.set_default('lock_path', '$state_path', 'oslo_concurrency')
+
+        cls._parser = six.moves.configparser.SafeConfigParser()
+        cls._parser.set('DEFAULT', 'enabled_backends', '')
+
+        if locks_path:
+            cls._parser.add_section('oslo_concurrency')
+            cls._parser.set('oslo_concurrency', 'lock_path', locks_path)
+            cls._parser.add_section('coordination')
+            cls._parser.set('coordination',
+                            'backend_url',
+                            'file://' + locks_path)
+        if host:
+            cls._parser.set('DEFAULT', 'host', host)
+
+        # All other configuration options go into the DEFAULT section
+        for key, value in cinder_config_params.items():
+            if not isinstance(value, six.string_types):
+                value = six.text_type(value)
+            cls._parser.set('DEFAULT', key, value)
+
+        # We replace the OSLO's default parser to read from a StringIO instead
+        # of reading from a file.
+        cls._config_string_io = six.moves.StringIO()
+        cfg.ConfigParser.parse = six.create_unbound_method(cls._config_parse,
+                                                           cfg.ConfigParser)
+
+        # Update the configuration with the options we have configured
+        cfg.CONF(project='cinder', version=cinderlib.__version__,
+                 default_config_files=['in_memory_file'])
+        cls._update_cinder_config()
+
+    def _set_backend_config(self, driver_cfg):
+        backend_name = driver_cfg['volume_backend_name']
+        self._parser.add_section(backend_name)
+        for key, value in driver_cfg.items():
+            if not isinstance(value, six.string_types):
+                value = six.text_type(value)
+            self._parser.set(backend_name, key, value)
+        self._parser.set('DEFAULT', 'enabled_backends',
+                         ','.join(self.backends.keys()))
+        self._update_cinder_config()
+        config = configuration.Configuration(manager.volume_backend_opts,
+                                             config_group=backend_name)
+        return config
+
     @classmethod
     def global_setup(cls, file_locks_path=None, root_helper='sudo',
                      suppress_requests_ssl_warnings=True, disable_logs=True,
                      non_uuid_ids=False, output_all_backend_info=False,
                      project_id=None, user_id=None, persistence_config=None,
-                     fail_on_missing_backend=True, host=None, **log_params):
+                     fail_on_missing_backend=True, host=None,
+                     **cinder_config_params):
         # Global setup can only be set once
         if cls.global_initialization:
             raise Exception('Already setup')
@@ -159,20 +255,15 @@ class Backend(object):
         cls.project_id = project_id
         cls.user_id = user_id
         cls.non_uuid_ids = non_uuid_ids
-        objects.CONFIGURED_HOST = host or volume_cmd.CONF.host
 
         cls.set_persistence(persistence_config)
-
-        volume_cmd.CONF.version = volume_cmd.version.version_string()
-        volume_cmd.CONF.register_opt(
-            configuration.cfg.StrOpt('stateless_cinder'),
-            group=configuration.SHARED_CONF_GROUP)
+        cls._set_cinder_config(host, file_locks_path, cinder_config_params)
 
         serialization.setup(cls)
 
-        cls._set_logging(disable_logs, **log_params)
+        cls._set_logging(disable_logs)
         cls._set_priv_helper(root_helper)
-        cls._set_coordinator(file_locks_path)
+        coordination.COORDINATOR.start()
 
         if suppress_requests_ssl_warnings:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -182,42 +273,20 @@ class Backend(object):
         cls.global_initialization = True
         cls.output_all_backend_info = output_all_backend_info
 
-    def _get_config(self, volume_backend_name, **kwargs):
-        volume_cmd.CONF.register_opt(volume_cmd.host_opt,
-                                     group=volume_backend_name)
-        backend_opts = getattr(volume_cmd.CONF, volume_backend_name)
-        for key, value in kwargs.items():
-            setattr(backend_opts, key, value)
-        config = configuration.Configuration([],
-                                             config_group=volume_backend_name)
-        return config
-
     @classmethod
-    def _set_logging(cls, disable_logs, **log_params):
+    def _set_logging(cls, disable_logs):
         if disable_logs:
             logging.Logger.disabled = property(lambda s: True,
                                                lambda s, x: None)
             return
 
-        for key, value in log_params.items():
-            volume_cmd.CONF.set_override(key, value)
-        volume_cmd.logging.setup(volume_cmd.CONF, 'cinder')
-        volume_cmd.python_logging.captureWarnings(True)
+        oslo_logging.setup(cfg.CONF, 'cinder')
+        logging.captureWarnings(True)
 
     @classmethod
     def _set_priv_helper(cls, root_helper):
         utils.get_root_helper = lambda: root_helper
         nos_brick.init(root_helper)
-
-    @classmethod
-    def _set_coordinator(cls, file_locks_path):
-        file_locks_path = file_locks_path or os.getcwd()
-        volume_cmd.CONF.set_override('lock_path', file_locks_path,
-                                     'oslo_concurrency')
-        volume_cmd.CONF.set_override('backend_url',
-                                     'file://' + file_locks_path,
-                                     'coordination')
-        coordination.COORDINATOR.start()
 
     @property
     def config(self):

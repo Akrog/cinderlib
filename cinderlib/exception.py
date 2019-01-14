@@ -20,10 +20,18 @@ NotFound = exception.NotFound
 VolumeNotFound = exception.VolumeNotFound
 SnapshotNotFound = exception.SnapshotNotFound
 ConnectionNotFound = exception.VolumeAttachmentNotFound
+InvalidVolume = exception.InvalidVolume
 
 
 class InvalidPersistence(Exception):
-    __msg = 'Invalid persistence storage: %s'
+    __msg = 'Invalid persistence storage: %s.'
 
     def __init__(self, name):
         super(InvalidPersistence, self).__init__(self.__msg % name)
+
+
+class NotLocal(Exception):
+    __msg = "Volume %s doesn't seem to be attached locally."
+
+    def __init__(self, name):
+        super(NotLocal, self).__init__(self.__msg % name)

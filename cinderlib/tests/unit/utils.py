@@ -16,6 +16,11 @@
 import mock
 
 import cinderlib
+from cinderlib.persistence import base
+
+
+def get_mock_persistence():
+    return mock.MagicMock(spec=base.PersistenceDriverBase)
 
 
 class FakeBackend(cinderlib.Backend):
@@ -24,4 +29,6 @@ class FakeBackend(cinderlib.Backend):
         cinderlib.Backend.backends[driver_name] = self
         self._driver_cfg = {'volume_backend_name': driver_name}
         self.driver = mock.Mock()
+        self.driver.persistence = cinderlib.Backend.persistence
         self._pool_names = (driver_name,)
+        self._volumes = []

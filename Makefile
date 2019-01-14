@@ -52,13 +52,13 @@ python-requirements:
 	pip install -e .
 
 lint: python-requirements ## check style with flake8
-	flake8 cinderlib tests
+	flake8 cinderlib
 
 unit-tests:
 	tox -epy27
 
 functional-tests:
-	unit2 discover -v -s tests/functional
+	CL_FTEST_CFG=`pwd`/tools/lvm.yaml unit2 discover -v -s cinderlib/tests/functional
 
 test-all: ## run tests on every Python version with tox
 	tox

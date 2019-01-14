@@ -13,14 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import absolute_import
+
 # NOTE(geguileo): Probably a good idea not to depend on cinder.cmd.volume
 # having all the other imports as they could change.
-from cinder.cmd import volume as volume_cmd
+from cinder import objects
 from cinder.objects import base as cinder_base_ovo
 from oslo_utils import timeutils
 from oslo_versionedobjects import fields
 import six
 
+import cinderlib
 from cinderlib import serialization
 
 
@@ -101,11 +104,11 @@ class PersistenceDriverBase(object):
                   for key in resource._changed_fields
                   if not isinstance(resource.fields[key], fields.ObjectField)}
         if getattr(resource._ovo, 'volume_type_id', None):
-            if ('qos_specs' in resource.volume_type._changed_fields
-                    and resource.volume_type.qos_specs):
+            if ('qos_specs' in resource.volume_type._changed_fields and
+                    resource.volume_type.qos_specs):
                 result['qos_specs'] = resource._ovo.volume_type.qos_specs.specs
-            if ('extra_specs' in resource.volume_type._changed_fields
-                    and resource.volume_type.extra_specs):
+            if ('extra_specs' in resource.volume_type._changed_fields and
+                    resource.volume_type.extra_specs):
                 result['extra_specs'] = resource._ovo.volume_type.extra_specs
         return result
 
@@ -135,22 +138,24 @@ class DB(object):
 
     Data will be retrieved using the persistence driver we setup.
     """
+    GET_METHODS_PER_DB_MODEL = {
+        objects.Volume.model: 'volume_get',
+        objects.VolumeType.model: 'volume_type_get',
+        objects.Snapshot.model: 'snapshot_get',
+        objects.QualityOfServiceSpecs.model: 'qos_specs_get',
+    }
 
     def __init__(self, persistence_driver):
         self.persistence = persistence_driver
 
-        # Replace the standard DB configuration for code that doesn't use the
-        # driver.db attribute (ie: OVOs).
-        volume_cmd.session.IMPL = self
-
         # Replace get_by_id OVO methods with something that will return
         # expected data
-        volume_cmd.objects.Volume.get_by_id = self.volume_get
-        volume_cmd.objects.Snapshot.get_by_id = self.snapshot_get
+        objects.Volume.get_by_id = self.volume_get
+        objects.Snapshot.get_by_id = self.snapshot_get
 
         # Disable saving in OVOs
         for ovo_name in cinder_base_ovo.CinderObjectRegistry.obj_classes():
-            ovo_cls = getattr(volume_cmd.objects, ovo_name)
+            ovo_cls = getattr(objects, ovo_name)
             ovo_cls.save = lambda *args, **kwargs: None
 
     def volume_get(self, context, volume_id, *args, **kwargs):
@@ -159,27 +164,38 @@ class DB(object):
     def snapshot_get(self, context, snapshot_id, *args, **kwargs):
         return self.persistence.get_snapshots(snapshot_id)[0]._ovo
 
-    def get_volume_type(self, context, id, inactive=False,
+    def volume_type_get(self, context, id, inactive=False,
                         expected_fields=None):
-        res = self.persistence.get_volumes(id)[0]._ovo
-        if not res.volume_type_id:
+        if id in cinderlib.Backend._volumes_inflight:
+            vol = cinderlib.Backend._volumes_inflight[id]
+        else:
+            vol = self.persistence.get_volumes(id)[0]
+
+        if not vol._ovo.volume_type_id:
             return None
-        return self._vol_type_to_dict(res.volume_type)
+        return vol_type_to_dict(vol._ovo.volume_type)
 
     def qos_specs_get(self, context, qos_specs_id, inactive=False):
-        res = self.persistence.get_volumes(qos_specs_id)[0]._ovo
-        if not res.volume_type_id:
+        if qos_specs_id in cinderlib.Backend._volumes_inflight:
+            vol = cinderlib.Backend._volumes_inflight[qos_specs_id]
+        else:
+            vol = self.persistence.get_volumes(qos_specs_id)[0]
+        if not vol._ovo.volume_type_id:
             return None
-        return self._vol_type_to_dict(res.volume_type)['qos_specs']
-
-    @staticmethod
-    def _vol_type_to_dict(volume_type):
-        res = serialization.obj_to_primitive(volume_type)
-        res = res['versioned_object.data']
-        if res.get('qos_specs'):
-            res['qos_specs'] = res['qos_specs']['versioned_object.data']
-        return res
+        return vol_type_to_dict(vol._ovo.volume_type)['qos_specs']
 
     @classmethod
     def image_volume_cache_get_by_volume_id(cls, context, volume_id):
         return None
+
+    def get_by_id(self, context, model, id, *args, **kwargs):
+        method = getattr(self, self.GET_METHODS_PER_DB_MODEL[model])
+        return method(context, id)
+
+
+def vol_type_to_dict(volume_type):
+    res = serialization.obj_to_primitive(volume_type)
+    res = res['versioned_object.data']
+    if res.get('qos_specs'):
+        res['qos_specs'] = res['qos_specs']['versioned_object.data']
+    return res

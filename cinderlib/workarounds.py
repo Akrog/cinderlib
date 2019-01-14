@@ -18,7 +18,7 @@ import six
 if six.PY2:
     # Python 2 workaround for getaddrinfo (fails if port is valid unicode)
     def my_getaddrinfo(original, host, port, *args, **kwargs):
-        if isinstance(port, unicode):
+        if isinstance(port, six.text_type):
             port = str(port)
         return original(host, port, *args, **kwargs)
     import functools

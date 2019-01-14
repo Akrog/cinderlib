@@ -13,45 +13,39 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import unittest2
-
 from cinder.cmd import volume as volume_cmd
+from cinder.db.sqlalchemy import api
 from cinder.db.sqlalchemy import models
 from oslo_versionedobjects import fields
 
 import cinderlib
-from tests.unit import utils
+from cinderlib.tests.unit import base
+from cinderlib.tests.unit import utils
 
 
-class BasePersistenceTest(unittest2.TestCase):
-
+class BasePersistenceTest(base.BaseTest):
     @classmethod
     def setUpClass(cls):
         cls.original_impl = volume_cmd.session.IMPL
-        # We check the entrypoint is working
+        cinderlib.Backend.global_initialization = False
         cinderlib.setup(persistence_config=cls.PERSISTENCE_CFG)
-        cls.persistence = cinderlib.Backend.persistence
-        cls.context = cinderlib.objects.CONTEXT
 
     @classmethod
     def tearDownClass(cls):
         volume_cmd.session.IMPL = cls.original_impl
         cinderlib.Backend.global_initialization = False
+        api.main_context_manager = api.enginefacade.transaction_context()
 
     def setUp(self):
-        self.backend = utils.FakeBackend()
-
-    def tearDown(self):
-        # Clear all existing backends
-        cinderlib.Backend.backends = {}
-        super(BasePersistenceTest, self).tearDown()
+        super(BasePersistenceTest, self).setUp()
+        self.context = cinderlib.objects.CONTEXT
 
     def sorted(self, resources, key='id'):
         return sorted(resources, key=lambda x: getattr(x, key))
 
     def create_n_volumes(self, n):
         return self.create_volumes([{'size': i, 'name': 'disk%s' % i}
-                                    for i in range(1, n+1)])
+                                    for i in range(1, n + 1)])
 
     def create_volumes(self, data, sort=True):
         vols = []

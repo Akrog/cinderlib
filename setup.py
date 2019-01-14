@@ -17,7 +17,6 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'cinder>=11.0',
-    'nos-brick',
 ]
 
 test_requirements = [
@@ -63,7 +62,7 @@ setuptools.setup(
     author="Gorka Eguileor",
     author_email='geguileo@redhat.com',
     url='https://github.com/akrog/cinderlib',
-    packages=setuptools.find_packages(exclude=['tmp', 'tests*']),
+    packages=setuptools.find_packages(exclude=['tmp', 'cinderlib/tests']),
     include_package_data=False,
     install_requires=requirements,
     extras_require=extras,

@@ -14,7 +14,7 @@
 #    under the License.
 
 import cinderlib
-from tests.unit.persistence import base
+from cinderlib.tests.unit.persistence import base
 
 
 class TestMemoryPersistence(base.BasePersistenceTest):
