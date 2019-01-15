@@ -36,6 +36,8 @@ from os_brick.privileged import rootwrap
 from oslo_concurrency import processutils as putils
 from oslo_privsep import priv_context
 from oslo_utils import fileutils
+from oslo_utils import strutils
+import six
 
 
 class RBDConnector(connectors.rbd.RBDConnector):
@@ -124,6 +126,15 @@ def unlink_root(*links, **kwargs):
         raise exc
 
 
+def _execute(*cmd, **kwargs):
+    try:
+        return rootwrap.custom_execute(*cmd, **kwargs)
+    except OSError as e:
+        sanitized_cmd = strutils.mask_password(' '.join(cmd))
+        raise putils.ProcessExecutionError(
+            cmd=sanitized_cmd, description=six.text_type(e))
+
+
 def init(root_helper='sudo'):
     global ROOT_HELPER
     ROOT_HELPER = root_helper
@@ -138,7 +149,7 @@ def init(root_helper='sudo'):
             args[0] = ROOT_HELPER
         else:
             kwargs['root_helper'] = ROOT_HELPER
-        kwargs['execute'] = rootwrap.custom_execute
+        kwargs['execute'] = _execute
         return existing_bgcp(*args, **kwargs)
 
     def my_bgc(protocol, *args, **kwargs):
@@ -148,7 +159,7 @@ def init(root_helper='sudo'):
             args[0] = ROOT_HELPER
         else:
             kwargs['root_helper'] = ROOT_HELPER
-        kwargs['execute'] = rootwrap.custom_execute
+        kwargs['execute'] = _execute
 
         # OS-Brick's implementation for RBD is not good enough for us
         if protocol == 'rbd':
