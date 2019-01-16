@@ -2,6 +2,13 @@
 History
 =======
 
+0.3.1 (2019-01-16)
+------------------
+
+- Bug fixes:
+
+  - Translation of execute's OSError exceptions
+
 0.3.0 (2019-01-14)
 ------------------
 
