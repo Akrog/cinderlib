@@ -2,6 +2,13 @@
 History
 =======
 
+0.3.x (2019-01-xx)
+------------------
+
+- Bug fixes:
+
+  - Failure when the caller has arguments
+
 0.3.1 (2019-01-16)
 ------------------
 

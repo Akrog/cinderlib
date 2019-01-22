@@ -220,6 +220,9 @@ class Backend(object):
         cfg.ConfigParser.parse = six.create_unbound_method(cls._config_parse,
                                                            cfg.ConfigParser)
 
+        # Replace command line arg parser so we ignore caller's args
+        cfg._CachedArgumentParser.parse_args = lambda *a, **kw: None
+
         # Update the configuration with the options we have configured
         cfg.CONF(project='cinder', version=cinderlib.__version__,
                  default_config_files=['in_memory_file'])
