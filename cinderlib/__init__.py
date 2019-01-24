@@ -38,3 +38,4 @@ setup = cinderlib.setup
 Backend = cinderlib.Backend
 
 get_connector_properties = objects.brick_connector.get_connector_properties
+list_supported_drivers = cinderlib.Backend.list_supported_drivers

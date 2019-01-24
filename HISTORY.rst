@@ -2,6 +2,14 @@
 History
 =======
 
+0.3.3 (2019-01-xx)
+------------------
+
+- Features:
+
+  - List drivers available in current Cinder installation.
+
+
 0.3.2 (2019-01-22)
 ------------------
 

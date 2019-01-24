@@ -16,6 +16,7 @@
 from __future__ import absolute_import
 import json as json_lib
 import logging
+import multiprocessing
 import os
 import six
 
@@ -27,6 +28,7 @@ from cinder import objects as cinder_objects
 # VA_LIST = objects.VolumeAttachmentList
 cinder_objects.register_all()  # noqa
 
+from cinder.interface import util as cinder_interface_util
 from cinder import utils
 from cinder.volume import configuration
 from cinder.volume import manager
@@ -350,6 +352,32 @@ class Backend(object):
         if self._volumes is not None:
             self._volumes = None
             self.volumes
+
+    @staticmethod
+    def list_supported_drivers():
+        """Returns dictionary with driver classes names as keys."""
+        def list_drivers(queue):
+            cwd = os.getcwd()
+            # Go to the parent directory directory where Cinder is installed
+            os.chdir(utils.__file__.rsplit(os.sep, 2)[0])
+            try:
+                drivers = cinder_interface_util.get_volume_drivers()
+                mapping = {d.class_name: vars(d) for d in drivers}
+                # Drivers contain class instances which are not serializable
+                for driver in mapping.values():
+                    driver.pop('cls', None)
+            finally:
+                os.chdir(cwd)
+            queue.put(mapping)
+
+        # Use a different process to avoid having all driver classes loaded in
+        # memory during our execution.
+        queue = multiprocessing.Queue()
+        p = multiprocessing.Process(target=list_drivers, args=(queue,))
+        p.start()
+        p.join()
+        result = queue.get()
+        return result
 
 
 setup = Backend.global_setup
