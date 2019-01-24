@@ -8,6 +8,7 @@ History
 - Features:
 
   - List drivers available in current Cinder installation.
+  - Support RBD-NBD as well as RBD-KO
 
 
 0.3.2 (2019-01-22)

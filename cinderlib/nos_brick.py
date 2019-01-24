@@ -50,13 +50,11 @@ class RBDConnector(connectors.rbd.RBDConnector):
 
     We need a third one, local attachment on non controller node.
     """
+    rbd_nbd_installed = True
+
     def connect_volume(self, connection_properties):
         # NOTE(e0ne): sanity check if ceph-common is installed.
-        try:
-            self._execute('which', 'rbd')
-        except putils.ProcessExecutionError:
-            msg = 'ceph-common package not installed'
-            raise exception.BrickException(msg)
+        self._setup_rbd_methods()
 
         # Extract connection parameters and generate config file
         try:
@@ -73,19 +71,45 @@ class RBDConnector(connectors.rbd.RBDConnector):
         conf = self._create_ceph_conf(monitor_ips, monitor_ports,
                                       str(cluster_name), user,
                                       keyring)
+        dev_path = self._connect_volume(pool, volume, conf,
+                                        connection_properties)
 
+        return {'path': dev_path,
+                'conf': conf,
+                'type': 'block'}
+
+    def _rbd_connect_volume(self, pool, volume, conf, connection_properties):
         # Map RBD volume if it's not already mapped
-        rbd_dev_path = self.get_rbd_device_name(pool, volume)
-        if (not os.path.islink(rbd_dev_path) or
-                not os.path.exists(os.path.realpath(rbd_dev_path))):
+        dev_path = self.get_rbd_device_name(pool, volume)
+        if (not os.path.islink(dev_path) or
+                not os.path.exists(os.path.realpath(dev_path))):
             cmd = ['rbd', 'map', volume, '--pool', pool, '--conf', conf]
             cmd += self._get_rbd_args(connection_properties)
             self._execute(*cmd, root_helper=self._root_helper,
                           run_as_root=True)
+        return os.path.realpath(dev_path)
 
-        return {'path': os.path.realpath(rbd_dev_path),
-                'conf': conf,
-                'type': 'block'}
+    def _get_nbd_device_name(self, pool, volume, conf, connection_properties):
+        cmd = ('rbd-nbd', 'list-mapped', '--conf', conf)
+        cmd += self._get_rbd_args(connection_properties)
+        stdout, stderr = self._execute(*cmd, root_helper=self._root_helper,
+                                       run_as_root=True)
+        for line in stdout.strip().splitlines():
+            pid, dev_pool, image, snap, device = line.split(None)
+            if dev_pool == pool and image == volume:
+                return device
+        return None
+
+    def _nbd_connect_volume(self, pool, volume, conf, connection_properties):
+        dev_path = self._get_nbd_device_name(pool, volume, conf,
+                                             connection_properties)
+        if not dev_path:
+            cmd = ['rbd-nbd', 'map', volume, '--conf', conf]
+            cmd += self._get_rbd_args(connection_properties)
+            dev_path, stderr = self._execute(*cmd,
+                                             root_helper=self._root_helper,
+                                             run_as_root=True)
+        return dev_path.strip()
 
     def check_valid_device(self, path, run_as_root=True):
         """Verify an existing RBD handle is connected and valid."""
@@ -102,12 +126,44 @@ class RBDConnector(connectors.rbd.RBDConnector):
 
         pool, volume = connection_properties['name'].split('/')
         conf_file = device_info['conf']
-        dev_name = self.get_rbd_device_name(pool, volume)
-        cmd = ['rbd', 'unmap', dev_name, '--conf', conf_file]
-        cmd += self._get_rbd_args(connection_properties)
-        self._execute(*cmd, root_helper=self._root_helper,
-                      run_as_root=True)
+        if self.rbd_nbd_installed:
+            dev_path = self._get_nbd_device_name(pool, volume, conf_file,
+                                                 connection_properties)
+            executable = 'rbd-nbd'
+        else:
+            dev_path = self.get_rbd_device_name(pool, volume)
+            executable = 'rbd'
+
+        real_dev_path = os.path.realpath(dev_path)
+        if os.path.exists(real_dev_path):
+            cmd = [executable, 'unmap', dev_path, '--conf', conf_file]
+            cmd += self._get_rbd_args(connection_properties)
+            self._execute(*cmd, root_helper=self._root_helper,
+                          run_as_root=True)
         fileutils.delete_if_exists(conf_file)
+
+    def _check_installed(self):
+        try:
+            self._execute('which', 'rbd')
+        except putils.ProcessExecutionError:
+            msg = 'ceph-common package not installed'
+            raise exception.BrickException(msg)
+
+        try:
+            self._execute('which', 'rbd-nbd')
+            RBDConnector._connect_volume = RBDConnector._nbd_connect_volume
+            RBDConnector._get_rbd_args = RBDConnector._get_nbd_args
+        except putils.ProcessExecutionError:
+            RBDConnector.rbd_nbd_installed = False
+
+        # Don't check again to speed things on following connections
+        RBDConnector.setup_rbd_methods = lambda *args: None
+
+    def _get_nbd_args(self, connection_properties):
+        return ('--id', connection_properties['auth_username'])
+
+    _setup_rbd_methods = _check_installed
+    _connect_volume = _rbd_connect_volume
 
 
 ROOT_HELPER = 'sudo'
