@@ -136,6 +136,34 @@ the `volume_backend_name` as the key.
         print('Backend %s is %sinitialized with configuration: %s' %
               (backend.id, initialized_msg, backend.config))
 
+Installed Drivers
+-----------------
+
+Available drivers for *cinderlib* depend on the Cinder version installed, so we
+have a method, called `list_supported_drivers` to list information about the
+drivers that are included with the Cinder release installed in the system.
+
+.. code-block:: python
+
+   import cinderlib
+
+   drivers = cinderlib.list_supported_drivers()
+
+And what we'll get is a dictionary with the class name of the driver, a
+description, the version of the driver, etc.
+
+Here's the entry for the LVM driver:
+
+... code-block:: python
+
+    {'LVMVolumeDriver':
+        {'ci_wiki_name': 'Cinder_Jenkins',
+        'class_fqn': 'cinder.volume.drivers.lvm.LVMVolumeDriver',
+        'class_name': 'LVMVolumeDriver',
+        'desc': 'Executes commands relating to Volumes.',
+        'supported': True,
+        'version': '3.0.0'}}
+
 Stats
 -----
 
