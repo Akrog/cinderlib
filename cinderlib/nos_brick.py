@@ -50,11 +50,9 @@ class RBDConnector(connectors.rbd.RBDConnector):
 
     We need a third one, local attachment on non controller node.
     """
-    rbd_nbd_installed = True
-
     def connect_volume(self, connection_properties):
         # NOTE(e0ne): sanity check if ceph-common is installed.
-        self._setup_rbd_methods()
+        self._setup_rbd_class()
 
         # Extract connection parameters and generate config file
         try:
@@ -71,48 +69,51 @@ class RBDConnector(connectors.rbd.RBDConnector):
         conf = self._create_ceph_conf(monitor_ips, monitor_ports,
                                       str(cluster_name), user,
                                       keyring)
-        dev_path = self._connect_volume(pool, volume, conf,
-                                        connection_properties)
 
-        return {'path': dev_path,
+        link_name = self.get_rbd_device_name(pool, volume)
+        real_path = os.path.realpath(link_name)
+
+        try:
+            # Map RBD volume if it's not already mapped
+            if not os.path.islink(link_name) or not os.path.exists(real_path):
+                cmd = ['rbd', 'map', volume, '--pool', pool, '--conf', conf]
+                cmd += self._get_rbd_args(connection_properties)
+                stdout, stderr = self._execute(*cmd,
+                                               root_helper=self._root_helper,
+                                               run_as_root=True)
+                real_path = stdout.strip()
+                # The host may not have RBD installed, and therefore won't
+                # create the symlinks, ensure they exist
+                if self.containerized:
+                    self._ensure_link(real_path, link_name)
+        except Exception:
+            fileutils.delete_if_exists(conf)
+
+        return {'path': real_path,
                 'conf': conf,
                 'type': 'block'}
 
-    def _rbd_connect_volume(self, pool, volume, conf, connection_properties):
-        # Map RBD volume if it's not already mapped
-        dev_path = self.get_rbd_device_name(pool, volume)
-        if (not os.path.islink(dev_path) or
-                not os.path.exists(os.path.realpath(dev_path))):
-            cmd = ['rbd', 'map', volume, '--pool', pool, '--conf', conf]
-            cmd += self._get_rbd_args(connection_properties)
-            self._execute(*cmd, root_helper=self._root_helper,
+    def _ensure_link(self, source, link_name):
+        self._ensure_dir(os.path.dirname(link_name))
+        if self.im_root:
+            try:
+                os.symlink(source, link_name)
+            except Exception:
+                pass
+        else:
+            self._execute('ln', '-s', '-f', source, link_name,
                           run_as_root=True)
-        return os.path.realpath(dev_path)
-
-    def _get_nbd_device_name(self, pool, volume, conf, connection_properties):
-        cmd = ('rbd-nbd', 'list-mapped', '--conf', conf)
-        cmd += self._get_rbd_args(connection_properties)
-        stdout, stderr = self._execute(*cmd, root_helper=self._root_helper,
-                                       run_as_root=True)
-        for line in stdout.strip().splitlines():
-            pid, dev_pool, image, snap, device = line.split(None)
-            if dev_pool == pool and image == volume:
-                return device
-        return None
-
-    def _nbd_connect_volume(self, pool, volume, conf, connection_properties):
-        dev_path = self._get_nbd_device_name(pool, volume, conf,
-                                             connection_properties)
-        if not dev_path:
-            cmd = ['rbd-nbd', 'map', volume, '--conf', conf]
-            cmd += self._get_rbd_args(connection_properties)
-            dev_path, stderr = self._execute(*cmd,
-                                             root_helper=self._root_helper,
-                                             run_as_root=True)
-        return dev_path.strip()
 
     def check_valid_device(self, path, run_as_root=True):
         """Verify an existing RBD handle is connected and valid."""
+        if self.im_root:
+            try:
+                with open(path, 'r') as f:
+                    f.read(4096)
+            except Exception:
+                return False
+            return True
+
         try:
             self._execute('dd', 'if=' + path, 'of=/dev/null', 'bs=4096',
                           'count=1', root_helper=self._root_helper,
@@ -123,47 +124,43 @@ class RBDConnector(connectors.rbd.RBDConnector):
 
     def disconnect_volume(self, connection_properties, device_info,
                           force=False, ignore_errors=False):
-
+        self._setup_rbd_class()
         pool, volume = connection_properties['name'].split('/')
         conf_file = device_info['conf']
-        if self.rbd_nbd_installed:
-            dev_path = self._get_nbd_device_name(pool, volume, conf_file,
-                                                 connection_properties)
-            executable = 'rbd-nbd'
-        else:
-            dev_path = self.get_rbd_device_name(pool, volume)
-            executable = 'rbd'
+        link_name = self.get_rbd_device_name(pool, volume)
+        real_dev_path = os.path.realpath(link_name)
 
-        real_dev_path = os.path.realpath(dev_path)
         if os.path.exists(real_dev_path):
-            cmd = [executable, 'unmap', dev_path, '--conf', conf_file]
+            cmd = ['rbd', 'unmap', real_dev_path, '--conf', conf_file]
             cmd += self._get_rbd_args(connection_properties)
             self._execute(*cmd, root_helper=self._root_helper,
                           run_as_root=True)
+
+            if self.containerized:
+                unlink_root(link_name)
         fileutils.delete_if_exists(conf_file)
 
-    def _check_installed(self):
+    def _ensure_dir(self, path):
+        if self.im_root:
+            os.makedirs(path)
+        else:
+            self._execute('mkdir', '-p', path, run_as_root=True)
+
+    def _setup_class(self):
         try:
             self._execute('which', 'rbd')
         except putils.ProcessExecutionError:
             msg = 'ceph-common package not installed'
             raise exception.BrickException(msg)
 
-        try:
-            self._execute('which', 'rbd-nbd')
-            RBDConnector._connect_volume = RBDConnector._nbd_connect_volume
-            RBDConnector._get_rbd_args = RBDConnector._get_nbd_args
-        except putils.ProcessExecutionError:
-            RBDConnector.rbd_nbd_installed = False
+        RBDConnector.im_root = os.getuid() == 0
+        # Check if we are running containerized
+        RBDConnector.containerized = os.stat('/proc').st_dev > 4
 
         # Don't check again to speed things on following connections
-        RBDConnector.setup_rbd_methods = lambda *args: None
+        RBDConnector._setup_rbd_class = lambda *args: None
 
-    def _get_nbd_args(self, connection_properties):
-        return ('--id', connection_properties['auth_username'])
-
-    _setup_rbd_methods = _check_installed
-    _connect_volume = _rbd_connect_volume
+    _setup_rbd_class = _setup_class
 
 
 ROOT_HELPER = 'sudo'
@@ -174,10 +171,17 @@ def unlink_root(*links, **kwargs):
     raise_at_end = kwargs.get('raise_at_end', False)
     exc = exception.ExceptionChainer()
     catch_exception = no_errors or raise_at_end
-    for link in links:
-        with exc.context(catch_exception, 'Unlink failed for %s', link):
-            putils.execute('unlink', link, run_as_root=True,
+
+    error_msg = 'Some unlinks failed for %s'
+    if os.getuid() == 0:
+        for link in links:
+            with exc.context(catch_exception, error_msg, links):
+                os.unlink(link)
+    else:
+        with exc.context(catch_exception, error_msg, links):
+            putils.execute('rm', *links, run_as_root=True,
                            root_helper=ROOT_HELPER)
+
     if not no_errors and raise_at_end and exc:
         raise exc
 

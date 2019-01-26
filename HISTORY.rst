@@ -2,6 +2,17 @@
 History
 =======
 
+0.3.4 (2019-01-26)
+------------------
+
+- Features:
+
+  - RBD volumes in container without RBD installed on host
+
+- Removals:
+
+  - RBD-NBD support was prematurely added, removed in this release
+
 0.3.3 (2019-01-24)
 ------------------
 
