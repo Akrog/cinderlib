@@ -2,6 +2,14 @@
 History
 =======
 
+0.3.5 (2019-01-XY)
+------------------
+
+- Bug fixes:
+
+  - Support MultiOpt configuration parameters
+
+
 0.3.4 (2019-01-26)
 ------------------
 

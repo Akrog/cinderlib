@@ -79,7 +79,7 @@ class Backend(object):
             configuration=conf,
             db=self.persistence.db,
             host='%s@%s' % (cfg.CONF.host, volume_backend_name),
-            cluster_name=None,  # We don't user cfg.CONF.cluster for now
+            cluster_name=None,  # We don't use cfg.CONF.cluster for now
             active_backend_id=None)  # No failover for now
         self.driver.do_setup(objects.CONTEXT)
         self.driver.check_for_setup_error()
@@ -188,6 +188,14 @@ class Backend(object):
         """Parse in-memory file to update OSLO configuration used by Cinder."""
         cls._config_string_io.seek(0)
         cls._parser.write(cls._config_string_io)
+
+        # Check if we have any multiopt
+        cls._config_string_io.seek(0)
+        current_cfg = cls._config_string_io.read()
+        if '\n\t' in current_cfg:
+            cls._config_string_io.seek(0)
+            cls._config_string_io.write(current_cfg.replace('\n\t', '\n'))
+
         cls._config_string_io.seek(0)
         cfg.CONF.reload_config_files()
 
@@ -211,10 +219,7 @@ class Backend(object):
             cls._parser.set('DEFAULT', 'host', host)
 
         # All other configuration options go into the DEFAULT section
-        for key, value in cinder_config_params.items():
-            if not isinstance(value, six.string_types):
-                value = six.text_type(value)
-            cls._parser.set('DEFAULT', key, value)
+        cls.__set_parser_kv(cinder_config_params, 'DEFAULT')
 
         # We replace the OSLO's default parser to read from a StringIO instead
         # of reading from a file.
@@ -230,13 +235,29 @@ class Backend(object):
                  default_config_files=['in_memory_file'])
         cls._update_cinder_config()
 
+    @classmethod
+    def __set_parser_kv(cls, kvs, section):
+        for key, val in kvs.items():
+            # We receive list or tuple for multiopt and ConfigParser doesn't
+            # support repeating the same entry multiple times, so we hack our
+            # way around it
+            if isinstance(val, (list, tuple)):
+                if not val:
+                    val = ''
+                elif len(val) == 1:
+                    val = val[0]
+                else:
+                    val = (('%s\n' % val[0]) +
+                           '\n'.join('%s = %s' % (key, v) for v in val[1:]))
+
+            if not isinstance(val, six.string_types):
+                val = six.text_type(val)
+            cls._parser.set(section, key, val)
+
     def _set_backend_config(self, driver_cfg):
         backend_name = driver_cfg['volume_backend_name']
         self._parser.add_section(backend_name)
-        for key, value in driver_cfg.items():
-            if not isinstance(value, six.string_types):
-                value = six.text_type(value)
-            self._parser.set(backend_name, key, value)
+        self.__set_parser_kv(driver_cfg, backend_name)
         self._parser.set('DEFAULT', 'enabled_backends',
                          ','.join(self.backends.keys()))
         self._update_cinder_config()
