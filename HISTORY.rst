@@ -8,7 +8,7 @@ History
 - Bug fixes:
 
   - Support MultiOpt configuration parameters
-
+  - Workaround for Cinder cached stats bug
 
 0.3.4 (2019-01-26)
 ------------------

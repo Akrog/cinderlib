@@ -38,6 +38,7 @@ from oslo_utils import importutils
 import urllib3
 
 import cinderlib
+from cinderlib import exception
 from cinderlib import nos_brick
 from cinderlib import objects
 from cinderlib import persistence
@@ -45,6 +46,8 @@ from cinderlib import serialization
 
 
 __all__ = ['setup', 'Backend']
+
+LOG = logging.getLogger(__name__)
 
 
 class Backend(object):
@@ -120,6 +123,18 @@ class Backend(object):
 
     def stats(self, refresh=False):
         stats_data = self.driver.get_volume_stats(refresh=refresh)
+        # TODO(geguileo): Remove this workaround for some drivers' bug that
+        # don't have a working stats cache once they are fixed.
+        if not refresh and not stats_data:
+            LOG.warning('Refreshing cache to work around driver stats cache '
+                        'bug')
+            stats_data = self.driver.get_volume_stats(refresh=True)
+
+        if not stats_data:
+            msg = 'Driver not returning stats data'
+            LOG.error(msg)
+            raise exception.VolumeDriverException(message=msg)
+
         # Fill pools for legacy driver reports
         if stats_data and 'pools' not in stats_data:
             pool = stats_data.copy()
