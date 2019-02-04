@@ -2,6 +2,13 @@
 History
 =======
 
+0.3.6 (2019-02-04)
+------------------
+
+- Bug fixes:
+
+  - Replace stats workaround with our stats caching mechanism
+
 0.3.5 (2019-02-03)
 ------------------
 
