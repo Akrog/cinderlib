@@ -86,7 +86,14 @@ class Backend(object):
             active_backend_id=None)  # No failover for now
         self.driver.do_setup(objects.CONTEXT)
         self.driver.check_for_setup_error()
+
         self.driver.init_capabilities()
+        # Some drivers don't implement the caching correctly. Populate cache
+        # with data retrieved in init_capabilities.
+        self._stats = self.driver.capabilities.copy()
+        self._stats.pop('properties', None)
+        self._stats.pop('vendor_prefix', None)
+
         self.driver.set_throttle()
         self.driver.set_initialized()
         self._driver_cfg = driver_cfg
@@ -122,30 +129,22 @@ class Backend(object):
                                             volume_name=volume_name)
 
     def stats(self, refresh=False):
-        stats_data = self.driver.get_volume_stats(refresh=refresh)
-        # TODO(geguileo): Remove this workaround for some drivers' bug that
-        # don't have a working stats cache once they are fixed.
-        if not refresh and not stats_data:
-            LOG.warning('Refreshing cache to work around driver stats cache '
-                        'bug')
-            stats_data = self.driver.get_volume_stats(refresh=True)
+        # Some drivers don't implement the caching correctly, so we implement
+        # it ourselves.
+        if refresh:
+            self._stats = self.driver.get_volume_stats(refresh=refresh)
 
-        if not stats_data:
-            msg = 'Driver not returning stats data'
-            LOG.error(msg)
-            raise exception.VolumeDriverException(message=msg)
+            # Fill pools for legacy driver reports
+            if self._stats and 'pools' not in self._stats:
+                pool = self._stats.copy()
+                pool['pool_name'] = self.id
+                for key in ('driver_version', 'shared_targets',
+                            'sparse_copy_volume', 'storage_protocol',
+                            'vendor_name', 'volume_backend_name'):
+                    pool.pop(key, None)
+                self._stats['pools'] = [pool]
 
-        # Fill pools for legacy driver reports
-        if stats_data and 'pools' not in stats_data:
-            pool = stats_data.copy()
-            pool['pool_name'] = self.id
-            for key in ('driver_version', 'shared_targets',
-                        'sparse_copy_volume', 'storage_protocol',
-                        'vendor_name', 'volume_backend_name'):
-                pool.pop(key, None)
-            stats_data['pools'] = [pool]
-
-        return stats_data
+        return self._stats
 
     def create_volume(self, size, name='', description='', bootable=False,
                       **kwargs):
