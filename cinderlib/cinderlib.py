@@ -38,7 +38,6 @@ from oslo_utils import importutils
 import urllib3
 
 import cinderlib
-from cinderlib import exception
 from cinderlib import nos_brick
 from cinderlib import objects
 from cinderlib import persistence

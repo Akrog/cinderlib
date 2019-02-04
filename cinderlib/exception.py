@@ -21,7 +21,6 @@ VolumeNotFound = exception.VolumeNotFound
 SnapshotNotFound = exception.SnapshotNotFound
 ConnectionNotFound = exception.VolumeAttachmentNotFound
 InvalidVolume = exception.InvalidVolume
-VolumeDriverException = exception.VolumeDriverException
 
 
 class InvalidPersistence(Exception):

@@ -37,8 +37,7 @@ class TestCinderlib(base.BaseTest):
         driver_cfg = {'k': 'v', 'k2': 'v2', 'volume_backend_name': 'Test'}
         cinderlib.Backend.global_initialization = False
         driver = mock_import.return_value
-        driver.get_volume_stats.return_value = {
-            'pools': [{'pool_name': 'default'}]}
+        driver.capabilities = {'pools': [{'pool_name': 'default'}]}
 
         backend = objects.Backend(**driver_cfg)
 
@@ -62,7 +61,7 @@ class TestCinderlib(base.BaseTest):
         driver.set_initialized.assert_called_once_with()
         self.assertEqual(driver_cfg, backend._driver_cfg)
         self.assertIsNone(backend._volumes)
-        driver.get_volume_stats.assert_called_once_with(refresh=False)
+        driver.get_volume_stats.assert_not_called()
         self.assertEqual(('default',), backend.pool_names)
 
     @mock.patch('urllib3.disable_warnings')
