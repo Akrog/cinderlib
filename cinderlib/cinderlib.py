@@ -87,20 +87,19 @@ class Backend(object):
         self.driver.check_for_setup_error()
 
         self.driver.init_capabilities()
-        # Some drivers don't implement the caching correctly. Populate cache
-        # with data retrieved in init_capabilities.
-        self._stats = self.driver.capabilities.copy()
-        self._stats.pop('properties', None)
-        self._stats.pop('vendor_prefix', None)
-
         self.driver.set_throttle()
         self.driver.set_initialized()
         self._driver_cfg = driver_cfg
         self._volumes = None
-        # init_capabilities already calls get_volume_stats with refresh=True
-        # so we can call it without refresh to get pool names.
-        self._pool_names = tuple(pool['pool_name']
-                                 for pool in self.stats()['pools'])
+
+        # Some drivers don't implement the caching correctly. Populate cache
+        # with data retrieved in init_capabilities.
+        stats = self.driver.capabilities.copy()
+        stats.pop('properties', None)
+        stats.pop('vendor_prefix', None)
+        self._stats = self._transform_legacy_stats(stats)
+
+        self._pool_names = tuple(pool['pool_name'] for pool in stats['pools'])
 
     @property
     def pool_names(self):
@@ -127,21 +126,25 @@ class Backend(object):
                                             volume_id=volume_id,
                                             volume_name=volume_name)
 
+    def _transform_legacy_stats(self, stats):
+        """Convert legacy stats to new stats with pools key."""
+        # Fill pools for legacy driver reports
+        if stats and 'pools' not in stats:
+            pool = stats.copy()
+            pool['pool_name'] = self.id
+            for key in ('driver_version', 'shared_targets',
+                        'sparse_copy_volume', 'storage_protocol',
+                        'vendor_name', 'volume_backend_name'):
+                pool.pop(key, None)
+            stats['pools'] = [pool]
+        return stats
+
     def stats(self, refresh=False):
         # Some drivers don't implement the caching correctly, so we implement
         # it ourselves.
         if refresh:
-            self._stats = self.driver.get_volume_stats(refresh=refresh)
-
-            # Fill pools for legacy driver reports
-            if self._stats and 'pools' not in self._stats:
-                pool = self._stats.copy()
-                pool['pool_name'] = self.id
-                for key in ('driver_version', 'shared_targets',
-                            'sparse_copy_volume', 'storage_protocol',
-                            'vendor_name', 'volume_backend_name'):
-                    pool.pop(key, None)
-                self._stats['pools'] = [pool]
+            stats = self.driver.get_volume_stats(refresh=refresh)
+            self._stats = self._transform_legacy_stats(stats)
 
         return self._stats
 
