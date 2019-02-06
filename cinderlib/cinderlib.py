@@ -101,6 +101,11 @@ class Backend(object):
 
         self._pool_names = tuple(pool['pool_name'] for pool in stats['pools'])
 
+    @staticmethod
+    def driver_options(volume_driver):
+        """Return the driver specific configuration options."""
+        return importutils.import_class(volume_driver).get_driver_options()
+
     @property
     def pool_names(self):
         return self._pool_names
