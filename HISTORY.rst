@@ -2,6 +2,13 @@
 History
 =======
 
+0.3.8 (2019-02-XY)
+------------------
+
+- Bug fixes:
+
+  - Fix exception raising on failed attach
+
 0.3.7 (2019-02-05)
 ------------------
 
