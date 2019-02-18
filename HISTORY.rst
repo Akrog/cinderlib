@@ -2,6 +2,13 @@
 History
 =======
 
+0.3.9 (2019-02-18)
+------------------
+
+- Bug fixes:
+
+  - Incorrect raise on Snapshot initialization backend errors.
+
 0.3.8 (2019-02-15)
 ------------------
 

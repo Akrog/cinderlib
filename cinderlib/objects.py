@@ -860,10 +860,10 @@ class Snapshot(NamedObject, LazyVolumeAttr):
                 backend = param_backend and param_backend.id
 
         if not (backend or param_backend):
-            raise
+            raise ValueError('Backend not provided')
 
         if backend and param_backend and param_backend.id != backend:
-            raise
+            raise ValueError("Multiple backends provided and they don't match")
 
         super(Snapshot, self).__init__(backend=param_backend or backend,
                                        **kwargs)
