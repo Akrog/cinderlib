@@ -19,7 +19,7 @@ from cinderlib import objects
 from cinderlib import serialization
 from cinderlib import workarounds  # noqa
 
-__version__ = '0.3.8'
+__version__ = '0.3.9'
 
 DEFAULT_PROJECT_ID = objects.DEFAULT_PROJECT_ID
 DEFAULT_USER_ID = objects.DEFAULT_USER_ID
