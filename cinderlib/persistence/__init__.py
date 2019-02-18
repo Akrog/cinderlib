@@ -71,7 +71,7 @@ def setup(config):
 
     if inspect.isclass(storage) and issubclass(storage,
                                                base.PersistenceDriverBase):
-            return storage(**config)
+        return storage(**config)
 
     if not isinstance(storage, six.string_types):
         raise exception.InvalidPersistence(storage)

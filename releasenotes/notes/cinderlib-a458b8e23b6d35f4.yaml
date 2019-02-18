@@ -1,0 +1,46 @@
+---
+prelude: >
+
+    The Cinder Library, also known as cinderlib, is a Python library that
+    leverages the Cinder project to provide an object oriented abstraction
+    around Cinder's storage drivers to allow their usage directly without
+    running any of the Cinder services or surrounding services, such as
+    KeyStone, MySQL or RabbitMQ.
+
+    This is the Tech Preview release of the library, and is intended for
+    developers who only need the basic CRUD functionality of the drivers and
+    don't care for all the additional features Cinder provides such as quotas,
+    replication, multi-tenancy, migrations, retyping, scheduling, backups,
+    authorization, authentication, REST API, etc.
+features:
+  - Use a Cinder driver without running a DBMS, Message broker, or Cinder
+    service.
+
+  - Using multiple simultaneous drivers on the same application.
+
+  - |
+    Basic operations support.
+
+    * Create volume
+    * Delete volume
+    * Extend volume
+    * Clone volume
+    * Create snapshot
+    * Delete snapshot
+    * Create volume from snapshot
+    * Connect volume
+    * Disconnect volume
+    * Local attach
+    * Local detach
+    * Validate connector
+    * Extra Specs for specific backend functionality.
+    * Backend QoS
+    * Multi-pool support
+
+  - |
+    Metadata persistence plugins.
+
+    * Stateless: Caller stores JSON serialization.
+    * Database: Metadata is stored in a database: MySQL, PostgreSQL, SQLite...
+    * Custom plugin: Caller provides module to store Metadata and cinderlib
+      calls

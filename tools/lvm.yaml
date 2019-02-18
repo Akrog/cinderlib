@@ -5,11 +5,6 @@
 # Logs are way too verbose, so we disable them
 logs: false
 
-# LVM backend uses cinder-rtstool command that is installed by Cinder in the
-# virtual environment, so we need the custom sudo command that inherits the
-# virtualenv binaries PATH
-venv_sudo: false
-
 # We only define one backend
 backends:
     - volume_backend_name: lvm

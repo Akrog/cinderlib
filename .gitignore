@@ -47,6 +47,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *,cover
+cover/
 .hypothesis/
 
 # Translations
@@ -56,11 +57,6 @@ coverage.xml
 # Django stuff:
 *.log
 
-# Sphinx documentation
-docs/_build/
-docs/cinderlib.rst
-docs/modules.rst
-
 # PyBuilder
 target/
 
@@ -69,3 +65,5 @@ target/
 
 # Temp directory, for example for the LVM file, our custom config, etc.
 temp/
+
+cinder-lioadm

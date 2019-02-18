@@ -1,29 +1,27 @@
+# Variables: devstack_base_dir, cinderlib_log_file, cinderlib_ignore_errors
 - hosts: all
   become: True
   vars:
-    devstack_base_dir: "{{ devstack_base_dir|default('/opt/stack') }}"
-    cinderlib_dir: "{{ cinderlib_dir }}|default({{ devstack_base_dir }}/cinderlib)"
-    cl_log_file: "{{ devstack_base_dir }}/logs/cinderlib.txt"
-    cinderlib_ignore_errors: "{{ cinderlib_ignore_errors }}|default(no)"
+    base_dir: "{{ devstack_base_dir | default('/opt/stack/new') }}"
+    default_log_file: "{{ base_dir }}/logs/cinderlib.txt"
   tasks:
-    - name: Create temporary config directory
-      tempfile:
-          state: directory
-          suffix: cinderlib
-      register: tempdir
-
-    - name: Convert Cinder's config to cinderlib functional test YAML
+    - name: Locate unit2 binary location
       shell:
-        cmd: "{{ cinderlib_dir }}/tools/cinder-to-yaml.py /etc/cinder/cinder.conf {{ tempdir.path }}/cinderlib.yaml >{{ cl_log_file }} 2>&1"
-      ignore_errors: "{{ cinderlib_ignore_errors }}"
-      register: generate_config
+        cmd: which unit2
+      register: unit2_which
+
+    - name: Add sudoers role for cinderlib unit2
+      copy:
+        dest: /etc/sudoers.d/zuul-sudo-unit2
+        content: "zuul ALL = NOPASSWD:{{ unit2_which.stdout }} discover -v -s cinderlib/tests/functional\n"
+        mode: 0440
+
+    - name: Validate sudoers config after edits
+      command: "/usr/sbin/visudo -c"
 
     - name: Run cinderlib functional tests
       shell:
-        cmd: "unit2 discover -v -s tests/functional >>{{ cl_log_file }} 2>&1"
+        cmd: "set -o pipefail && {{ unit2_which.stdout }} discover -v -s cinderlib/tests/functional 2>&1 | tee {{ cinderlib_log_file | default(default_log_file)}}"
+        chdir: "{{ base_dir }}/cinderlib"
         executable: /bin/bash
-        chdir: "{{ cinderlib_dir }}"
-      environment:
-        CL_FTEST_CFG: "{{ tempdir.path }}/cinderlib.yaml"
-      when: generate_config.rc != 0
-      ignore_errors: "{{ cinderlib_ignore_errors }}"
+      ignore_errors: "{{ cinderlib_ignore_errors | default(false) | bool}}"

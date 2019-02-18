@@ -13,13 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 from __future__ import absolute_import
+import pkg_resources
 
 from cinderlib import cinderlib
 from cinderlib import objects
 from cinderlib import serialization
 from cinderlib import workarounds  # noqa
 
-__version__ = '0.3.9'
+try:
+    __version__ = pkg_resources.get_distribution('cinderlib').version
+except pkg_resources.DistributionNotFound:
+    __version__ = '0.0.0'
 
 DEFAULT_PROJECT_ID = objects.DEFAULT_PROJECT_ID
 DEFAULT_USER_ID = objects.DEFAULT_USER_ID

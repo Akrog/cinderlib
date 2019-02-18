@@ -1,93 +1,29 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# Copyright (c) 2019, Red Hat, Inc.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
 
+# THIS FILE IS MANAGED BY THE GLOBAL REQUIREMENTS REPO - DO NOT EDIT
 import setuptools
 
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
-
-# Remove the demo for the PyPi package
-start = readme.index('Demo\n----')
-end = readme.index('Example\n-------')
-readme = readme[:start] + readme[end:]
-
-
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
-
-requirements = [
-    'cinder>=11.0',
-]
-
-test_requirements = [
-    # TODO: put package test requirements here
-]
-
-extras = {
-    # DRBD
-    'drbd': ['dbus', 'drbdmanage'],
-    # HPE 3PAR
-    '3par': ['hpe3parclient>=4.1.0'],
-    # Kaminario
-    'kaminario': ['krest>=1.3.0'],
-    # Pure
-    'pure': ['purestorage>=1.6.0'],
-    # Dell EMC VMAX
-    'vmax': ['pyOpenSSL>=1.0.0'],
-    # IBM DS8K
-    'ds8k': ['pyOpenSSL>=1.0.0'],
-    # HPE Lefthand
-    'lefthand': ['python-lefthandclient>=2.0.0'],
-    # Fujitsu Eternus DX
-    'eternus': ['pywbem>=0.7.0'],
-    # IBM XIV
-    'xiv': ['pyxcli>=1.1.5'],
-    # RBD/Ceph
-    'rbd': ['rados', 'rbd'],
-    # Dell EMC VNX
-    'vnx': ['storops>=0.4.8'],
-    # Violin
-    'violin': ['vmemclient>=1.1.8'],
-    # INFINIDAT
-    'infinidat': ['infinisdk', 'capacity', 'infi.dtypes.wwn',
-                  'infi.dtypes.iqn'],
-}
+# In python < 2.7.4, a lazy loading of package `pbr` will break
+# setuptools if some other modules registered functions in `atexit`.
+# solution from: http://bugs.python.org/issue15881#msg170215
+try:
+    import multiprocessing  # noqa
+except ImportError:
+    pass
 
 setuptools.setup(
-    name='cinderlib',
-    version='0.3.9',
-    description=("Cinder Library allows using storage drivers outside of "
-                 "Cinder."),
-    long_description=readme + '\n\n' + history,
-    author="Gorka Eguileor",
-    author_email='geguileo@redhat.com',
-    url='https://github.com/akrog/cinderlib',
-    packages=setuptools.find_packages(exclude=['tmp', 'cinderlib/tests']),
-    include_package_data=False,
-    install_requires=requirements,
-    extras_require=extras,
-    license="Apache Software License 2.0",
-    zip_safe=False,
-    keywords='cinderlib',
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apache Software License',
-        'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-    ],
-    test_suite='unittest2.collector',
-    tests_require=test_requirements,
-    entry_points={
-        'cinderlib.persistence.storage': [
-            'memory = cinderlib.persistence.memory:MemoryPersistence',
-            'db = cinderlib.persistence.dbms:DBPersistence',
-            'memory_db = cinderlib.persistence.dbms:MemoryDBPersistence',
-        ],
-    },
-)
+    setup_requires=['pbr>=2.0.0'],
+    pbr=True)
