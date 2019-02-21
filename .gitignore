@@ -1,6 +1,9 @@
 # Byte-compiled / optimized / DLL files
 .*
 !.gitignore
+!.testr.conf
+!.stestr.conf
+!.zuul.yaml
 !.travis.yml
 .*.sw?
 __pycache__/

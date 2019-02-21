@@ -1,0 +1,76 @@
+# Copyright (c) 2018, Red Hat, Inc.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+#
+#
+---
+#------------------------------------------------------------------------------
+# Setup an Ceph cluster that will be used by cinderlib's functional tests
+#------------------------------------------------------------------------------
+- hosts: all
+  vars:
+    ansible_become: yes
+  tasks:
+      # Tox job has in its pre.yaml the ensure-tox role, which installs tox
+      # from pip, which brings six from pip.  This conflicts with ceph-common's
+      # python-six dependency.
+      - name: Remove pip's six from the system
+        pip:
+          name: six
+          state: absent
+
+      - name: Install ceph-common and epel-release
+        yum:
+          name: ['epel-release', 'ceph-common']
+          state: present
+
+      - name: Install Docker from epel
+        yum:
+          name: 'docker'
+          state: present
+
+      - name: Start Docker
+        service:
+            name: docker
+            state: started
+
+      - name: Start Ceph demo
+        command: |
+          docker run -d
+          --name ceph-demo
+          -e MON_IP=127.0.0.1
+          -e CEPH_PUBLIC_NETWORK=127.0.0.1/0
+          -e DEMO_DAEMONS="osd mds"
+          --net=host
+          --volume /etc/ceph:/etc/ceph
+          --privileged
+          ceph/daemon:latest-luminous
+          demo
+
+      - name: Wait for ceph.conf
+        wait_for:
+            path: /etc/ceph/ceph.conf
+            search_regex: '[global]'
+
+      - name: Set ceph features in config
+        lineinfile:
+            path: /etc/ceph/ceph.conf
+            insertafter: '[global]'
+            line: 'rbd default features = 3'
+            state: present
+
+      - name: Set ceph keyring mode
+        file:
+            path: /etc/ceph/ceph.client.admin.keyring
+            mode: 0644

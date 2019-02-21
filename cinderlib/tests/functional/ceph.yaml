@@ -1,0 +1,11 @@
+# Logs are way too verbose, so we disable them
+logs: false
+
+# We only define one backend
+backends:
+    - volume_backend_name: ceph
+      volume_driver: cinder.volume.drivers.rbd.RBDDriver
+      rbd_user: admin
+      rbd_pool: rbd
+      rbd_ceph_conf: /etc/ceph/ceph.conf
+      rbd_keyring_conf: /etc/ceph/ceph.client.admin.keyring

@@ -1,0 +1,40 @@
+- project:
+    templates:
+      # TODO(geguileo): Uncomment publish-to-pypi once we release Cinder on
+      # PyPi and we can add it to test-requirements instead of the git repo.
+      # - publish-to-pypi
+      # PEP8 + PY27 + Post branch-tarball
+      - openstack-python-jobs
+      - openstack-python36-jobs
+      - publish-openstack-docs-pti
+      - release-notes-jobs-python3
+    check:
+      queue: integrated
+      jobs:
+        - cinderlib-lvm-functional
+        - cinderlib-ceph-functional
+    gate:
+      queue: integrated
+      jobs:
+        - cinderlib-lvm-functional
+        - cinderlib-ceph-functional
+
+- job:
+    name: cinderlib-lvm-functional
+    parent: openstack-tox-functional-with-sudo
+    pre-run: playbooks/setup-lvm.yaml
+    nodeset: centos-7
+
+- job:
+    name: cinderlib-ceph-functional
+    parent: openstack-tox-functional-with-sudo
+    pre-run: playbooks/setup-ceph.yaml
+    nodeset: centos-7
+    vars:
+      tox_environment:
+        CL_FTEST_CFG: "cinderlib/tests/functional/ceph.yaml"
+        CL_FTEST_ROOT_HELPER: sudo
+        # These come from great-great-grandparent tox job
+        NOSE_WITH_HTML_OUTPUT: 1
+        NOSE_HTML_OUT_FILE: nose_results.html
+        NOSE_WITH_XUNIT: 1
