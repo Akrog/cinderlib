@@ -1,0 +1,9 @@
+# Defaults
+# --------
+
+# Set up default directories
+CINDERLIB_SAMPLE_DIR=${CINDERLIB_CONF_DIR:-/etc/cinder}
+CINDERLIB_SAMPLE=$CINDERLIB_SAMPLE_DIR/cinderlib.py
+CINDERLIB_FROM_GIT=$(trueorfalse True CINDERLIB_FROM_GIT)
+
+define_plugin cinderlib

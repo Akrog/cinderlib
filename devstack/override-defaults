@@ -1,0 +1,7 @@
+ALL_LIBS+=" cinderlib"
+CINDERLIB_FROM_GIT=$(trueorfalse True CINDERLIB_FROM_GIT)
+
+if [[ "$CINDERLIB_FROM_GIT" == "True" ]]; then
+    PROJECTS="openstack/cinderlib $PROJECTS"
+    LIBS_FROM_GIT="cinderlib,$LIBS_FROM_GIT"
+fi
