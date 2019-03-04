@@ -24,7 +24,7 @@ import unittest2
 import yaml
 
 import cinderlib
-from cinderlib.tests.functional import cinder_to_yaml
+from cinderlib.cmd import cinder_to_yaml
 
 
 def set_backend(func, new_name, backend_name):

@@ -35,7 +35,7 @@ import sys
 
 import six
 
-from cinderlib.tests.functional import cinder_to_yaml
+from cinderlib.cmd import cinder_to_yaml
 
 
 def _to_str(value):
@@ -44,7 +44,7 @@ def _to_str(value):
     return value
 
 
-def main(source, dest):
+def convert(source, dest):
     config = cinder_to_yaml.convert(source)
     result = ['import cinderlib as cl']
     for backend in config['backends']:
@@ -57,7 +57,11 @@ def main(source, dest):
         f.write('\n\n'.join(result) + '\n')
 
 
-if __name__ == '__main__':
+def main():
     source = '/etc/cinder/cinder.conf' if len(sys.argv) < 2 else sys.argv[1]
     dest = '/dev/stdout' if len(sys.argv) < 3 else sys.argv[2]
-    main(source, dest)
+    convert(source, dest)
+
+
+if __name__ == '__main__':
+    main()
