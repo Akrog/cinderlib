@@ -26,6 +26,7 @@ Here we take care of:
 Some of these changes may be later moved to OS-Brick. For now we just copied it
 from the nos-brick repository.
 """
+import errno
 import functools
 import os
 
@@ -88,6 +89,7 @@ class RBDConnector(connectors.rbd.RBDConnector):
                     self._ensure_link(real_path, link_name)
         except Exception:
             fileutils.delete_if_exists(conf)
+            raise
 
         return {'path': real_path,
                 'conf': conf,
@@ -98,8 +100,13 @@ class RBDConnector(connectors.rbd.RBDConnector):
         if self.im_root:
             try:
                 os.symlink(source, link_name)
-            except Exception:
-                pass
+            except OSError as exc:
+                if exc.errno != errno.EEXIST:
+                    raise
+                # If we have a leftover link, clean it up
+                if source != os.path.realpath(link_name):
+                    os.remove(link_name)
+                    os.symlink(source, link_name)
         else:
             self._execute('ln', '-s', '-f', source, link_name,
                           run_as_root=True)
@@ -142,9 +149,13 @@ class RBDConnector(connectors.rbd.RBDConnector):
 
     def _ensure_dir(self, path):
         if self.im_root:
-            os.makedirs(path)
+            try:
+                os.makedirs(path, 0o755)
+            except OSError as exc:
+                if exc.errno != errno.EEXIST:
+                    raise
         else:
-            self._execute('mkdir', '-p', path, run_as_root=True)
+            self._execute('mkdir', '-p', '-m0755', path, run_as_root=True)
 
     def _setup_class(self):
         try:
