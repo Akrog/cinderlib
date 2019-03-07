@@ -1,8 +1,6 @@
 - project:
     templates:
-      # TODO(geguileo): Uncomment publish-to-pypi once we release Cinder on
-      # PyPi and we can add it to test-requirements instead of the git repo.
-      # - publish-to-pypi
+      - publish-to-pypi
       # PEP8 + PY27 + Post branch-tarball
       - openstack-python-jobs
       - openstack-python36-jobs
