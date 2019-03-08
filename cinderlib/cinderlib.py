@@ -393,6 +393,15 @@ class Backend(object):
     @staticmethod
     def list_supported_drivers():
         """Returns dictionary with driver classes names as keys."""
+
+        def convert_oslo_config(oslo_options):
+            options = []
+            for opt in oslo_options:
+                tmp_dict = {k: str(v) for k, v in vars(opt).items()
+                            if not k.startswith('_')}
+                options.append(tmp_dict)
+            return options
+
         def list_drivers(queue):
             cwd = os.getcwd()
             # Go to the parent directory directory where Cinder is installed
@@ -403,6 +412,9 @@ class Backend(object):
                 # Drivers contain class instances which are not serializable
                 for driver in mapping.values():
                     driver.pop('cls', None)
+                    if 'driver_options' in driver:
+                        driver['driver_options'] = convert_oslo_config(
+                            driver['driver_options'])
             finally:
                 os.chdir(cwd)
             queue.put(mapping)
@@ -412,8 +424,8 @@ class Backend(object):
         queue = multiprocessing.Queue()
         p = multiprocessing.Process(target=list_drivers, args=(queue,))
         p.start()
-        p.join()
         result = queue.get()
+        p.join()
         return result
 
 
