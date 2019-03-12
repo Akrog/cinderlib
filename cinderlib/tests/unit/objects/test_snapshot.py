@@ -73,7 +73,11 @@ class TestSnapshot(base.BaseTest):
         self.persistence.set_snapshot.assert_called_once_with(self.snap)
 
     def test_delete(self):
-        self.snap.delete()
+        with mock.patch.object(
+                self.vol, '_snapshot_removed',
+                wraps=self.vol._snapshot_removed) as snap_removed_mock:
+            self.snap.delete()
+        snap_removed_mock.assert_called_once_with(self.snap)
         self.backend.driver.delete_snapshot.assert_called_once_with(
             self.snap._ovo)
         self.persistence.delete_snapshot.assert_called_once_with(self.snap)
@@ -81,13 +85,15 @@ class TestSnapshot(base.BaseTest):
         self.assertEqual([], self.vol._ovo.snapshots.objects)
         self.assertEqual('deleted', self.snap._ovo.status)
 
-    def test_delete_error(self):
+    @mock.patch('cinderlib.objects.Volume._snapshot_removed')
+    def test_delete_error(self, snap_removed_mock):
         self.backend.driver.delete_snapshot.side_effect = exception.NotFound
         with self.assertRaises(exception.NotFound) as assert_context:
             self.snap.delete()
         self.assertEqual(self.snap, assert_context.exception.resource)
         self.backend.driver.delete_snapshot.assert_called_once_with(
             self.snap._ovo)
+        snap_removed_mock.assert_not_called()
         self.persistence.delete_snapshot.assert_not_called()
         self.assertEqual([self.snap], self.vol.snapshots)
         self.assertEqual([self.snap._ovo], self.vol._ovo.snapshots.objects)

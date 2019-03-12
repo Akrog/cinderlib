@@ -176,7 +176,8 @@ class TestCinderlib(base.BaseTest):
         mock_vol.return_value.create.assert_called_once_with()
 
     def test__volume_removed_no_list(self):
-        self.backend._volume_removed(mock.sentinel.volume)
+        vol = cinderlib.objects.Volume(self.backend, size=10)
+        self.backend._volume_removed(vol)
 
     def test__volume_removed(self):
         vol = cinderlib.objects.Volume(self.backend, size=10)

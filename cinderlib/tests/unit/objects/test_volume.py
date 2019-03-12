@@ -397,13 +397,15 @@ class TestVolume(base.BaseTest):
         mock_conn._disconnect.assert_called_once_with(mock.sentinel.force)
         mock_disconnect.assert_called_once_with(mock_conn)
 
+    @mock.patch('cinderlib.objects.Volume._connection_removed')
     @mock.patch('cinderlib.objects.Volume._remove_export')
-    def test__disconnect(self, mock_remove_export):
+    def test__disconnect(self, mock_remove_export, mock_conn_removed):
         vol = objects.Volume(self.backend_name, status='in-use', size=10)
 
         vol._disconnect(mock.sentinel.connection)
 
         mock_remove_export.assert_called_once_with()
+        mock_conn_removed.assert_called_once_with(mock.sentinel.connection)
         self.assertEqual('available', vol.status)
         self.persistence.set_volume.assert_called_once_with(vol)
 
@@ -426,3 +428,75 @@ class TestVolume(base.BaseTest):
         mock_remove_export.assert_called_once_with()
         for c in connections:
             c.detach.asssert_called_once_with()
+
+    def test__snapshot_removed_not_loaded(self):
+        vol = objects.Volume(self.backend,
+                             name='vol_name', description='vol_desc', size=10)
+        vol._snapshots = None
+        snap = objects.Snapshot(vol)
+        # Just check it doesn't break
+        vol._snapshot_removed(snap)
+
+    def test__snapshot_removed_not_present(self):
+        vol = objects.Volume(self.backend,
+                             name='vol_name', description='vol_desc', size=10)
+        snap = objects.Snapshot(vol)
+        snap2 = objects.Snapshot(vol)
+        vol._snapshots = [snap2]
+        vol._ovo.snapshots.objects = [snap2._ovo]
+        # Just check it doesn't break or remove any other snaps
+        vol._snapshot_removed(snap)
+        self.assertEqual([snap2], vol._snapshots)
+        self.assertEqual([snap2._ovo], vol._ovo.snapshots.objects)
+
+    def test__snapshot_removed(self):
+        vol = objects.Volume(self.backend,
+                             name='vol_name', description='vol_desc', size=10)
+        snap = objects.Snapshot(vol)
+        snap2 = objects.Snapshot(vol)
+        snap_other_instance = objects.Snapshot(vol, id=snap.id,
+                                               description='d')
+        snap_other_instance2 = objects.Snapshot(vol, id=snap.id,
+                                                description='e')
+        vol._snapshots = [snap2, snap_other_instance]
+        vol._ovo.snapshots.objects = [snap2._ovo, snap_other_instance2._ovo]
+        # Just check it doesn't break or remove any other snaps
+        vol._snapshot_removed(snap)
+        self.assertEqual([snap2], vol._snapshots)
+        self.assertEqual([snap2._ovo], vol._ovo.snapshots.objects)
+
+    def test__connection_removed_not_loaded(self):
+        vol = objects.Volume(self.backend,
+                             name='vol_name', description='vol_desc', size=10)
+        vol._connections = None
+        conn = objects.Connection(self.backend, connection_info={'conn': {}})
+        # Just check it doesn't break
+        vol._connection_removed(conn)
+
+    def test__connection_removed_not_present(self):
+        vol = objects.Volume(self.backend,
+                             name='vol_name', description='vol_desc', size=10)
+        conn = objects.Connection(self.backend, connection_info={'conn': {}})
+        conn2 = objects.Connection(self.backend, connection_info={'conn': {}})
+        vol._connections = [conn2]
+        vol._ovo.volume_attachment.objects = [conn2._ovo]
+        # Just check it doesn't break or remove any other snaps
+        vol._connection_removed(conn)
+        self.assertEqual([conn2], vol._connections)
+        self.assertEqual([conn2._ovo], vol._ovo.volume_attachment.objects)
+
+    def test__connection_removed(self):
+        vol = objects.Volume(self.backend, size=10)
+        conn = objects.Connection(self.backend, connection_info={'conn': {}})
+        conn2 = objects.Connection(self.backend, connection_info={'conn': {}})
+        conn_other_instance = objects.Connection(self.backend, id=conn.id,
+                                                 connection_info={'conn': {}})
+        conn_other_instance2 = objects.Connection(self.backend, id=conn.id,
+                                                  connection_info={'conn': {}})
+        vol._connections = [conn2, conn_other_instance]
+        vol._ovo.volume_attachment.objects = [conn2._ovo,
+                                              conn_other_instance2._ovo]
+        # Just check it doesn't break or remove any other snaps
+        vol._connection_removed(conn)
+        self.assertEqual([conn2], vol._connections)
+        self.assertEqual([conn2._ovo], vol._ovo.volume_attachment.objects)

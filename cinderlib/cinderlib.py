@@ -42,6 +42,7 @@ from cinderlib import nos_brick
 from cinderlib import objects
 from cinderlib import persistence
 from cinderlib import serialization
+from cinderlib import utils as cinderlib_utils
 
 
 __all__ = ['setup', 'Backend']
@@ -157,11 +158,9 @@ class Backend(object):
         return vol
 
     def _volume_removed(self, volume):
-        if self._volumes:
-            for i, vol in enumerate(self._volumes):
-                if vol.id == volume.id:
-                    del self._volumes[i]
-                    break
+        i, vol = cinderlib_utils.find_by_id(volume.id, self._volumes)
+        if vol:
+            del self._volumes[i]
 
     @classmethod
     def _start_creating_volume(cls, volume):

@@ -31,6 +31,7 @@ from oslo_utils import timeutils
 import six
 
 from cinderlib import exception
+from cinderlib import utils
 
 
 LOG = logging.getLogger(__name__)
@@ -447,6 +448,29 @@ class Volume(NamedObject):
         finally:
             self.save()
 
+    def _snapshot_removed(self, snapshot):
+        # The snapshot instance in memory could be out of sync and not be
+        # identical, so check by ID.
+        i, snap = utils.find_by_id(snapshot.id, self._snapshots)
+        if snap:
+            del self._snapshots[i]
+
+        i, ovo = utils.find_by_id(snapshot.id, self._ovo.snapshots.objects)
+        if ovo:
+            del self._ovo.snapshots.objects[i]
+
+    def _connection_removed(self, connection):
+        # The connection instance in memory could be out of sync and not be
+        # identical, so check by ID.
+        i, conn = utils.find_by_id(connection.id, self._connections)
+        if conn:
+            del self._connections[i]
+
+        ovo_conns = getattr(self._ovo, CONNECTIONS_OVO_FIELD).objects
+        i, ovo_conn = utils.find_by_id(connection.id, ovo_conns)
+        if ovo_conn:
+            del ovo_conns[i]
+
     def delete(self):
         if self.snapshots:
             msg = 'Cannot delete volume %s with snapshots' % self.id
@@ -559,10 +583,7 @@ class Volume(NamedObject):
 
     def _disconnect(self, connection):
         self._remove_export()
-        if self._connections:
-            self._connections.remove(connection)
-            ovo_conns = getattr(self._ovo, CONNECTIONS_OVO_FIELD).objects
-            ovo_conns.remove(connection._ovo)
+        self._connection_removed(connection)
 
         if not self.connections:
             self._ovo.status = 'available'
@@ -753,12 +774,12 @@ class Connection(Object, LazyVolumeAttr):
         if save:
             conn.save()
         # Restore circular reference only if we have all the elements
-        if conn._volume and conn._volume._connections is not None:
-            conn._volume._connections.append(conn)
-            ovo_conns = getattr(conn._volume._ovo,
-                                CONNECTIONS_OVO_FIELD).objects
-            if ovo not in ovo_conns:
-                ovo_conns.append(ovo)
+        if conn._volume:
+            utils.add_by_id(conn, conn._volume._connections)
+
+            connections = getattr(conn._volume._ovo,
+                                  CONNECTIONS_OVO_FIELD).objects
+            utils.add_by_id(conn._ovo, connections)
         return conn
 
     def _disconnect(self, force=False):
@@ -882,10 +903,9 @@ class Snapshot(NamedObject, LazyVolumeAttr):
         if save:
             snap.save()
         # Restore circular reference only if we have all the elements
-        if snap._volume and snap._volume._snapshots is not None:
-            snap._volume._snapshots.append(snap)
-            if ovo not in snap._volume._ovo.snapshots.objects:
-                snap._volume._ovo.snapshots.objects.append(ovo)
+        if snap._volume:
+            utils.add_by_id(snap, snap._volume._snapshots)
+            utils.add_by_id(snap._ovo, snap._volume._ovo.snapshots.objects)
         return snap
 
     def create(self):
@@ -909,12 +929,8 @@ class Snapshot(NamedObject, LazyVolumeAttr):
             self._ovo.status = 'error_deleting'
             self.save()
             self._raise_with_resource()
-        if self._volume is not None and self._volume._snapshots is not None:
-            try:
-                self._volume._snapshots.remove(self)
-                self._volume._ovo.snapshots.objects.remove(self._ovo)
-            except ValueError:
-                pass
+        if self._volume is not None:
+            self._volume._snapshot_removed(self)
 
     def create_volume(self, **new_vol_params):
         new_vol_params.setdefault('size', self.volume_size)
