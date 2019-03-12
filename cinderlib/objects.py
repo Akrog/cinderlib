@@ -615,7 +615,6 @@ class Connection(Object, LazyVolumeAttr):
                    connector=connector,
                    volume=volume,
                    status='attached',
-                   attach_mode='rw',
                    connection_info={'conn': conn_info},
                    **kwargs)
         conn.connector_info = connector
@@ -657,6 +656,8 @@ class Connection(Object, LazyVolumeAttr):
         self.scan_attempts = kwargs.pop('device_scan_attempts', scan_attempts)
         volume = kwargs.pop('volume', None)
         self._connector = None
+        if not kwargs.get('attach_mode'):
+            kwargs['attach_mode'] = 'rw'
 
         super(Connection, self).__init__(*args, **kwargs)
         LazyVolumeAttr.__init__(self, volume)
@@ -665,7 +666,12 @@ class Connection(Object, LazyVolumeAttr):
     def conn_info(self):
         conn_info = self._ovo.connection_info
         if conn_info:
-            return conn_info.get('conn')
+            conn = conn_info.get('conn')
+            data = conn.get('data')
+            if data is not None:
+                data['access_mode'] = self._ovo.attach_mode
+            return conn
+
         return {}
 
     @conn_info.setter

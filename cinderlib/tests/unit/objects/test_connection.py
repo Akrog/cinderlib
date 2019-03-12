@@ -40,9 +40,12 @@ class TestConnection(base.BaseTest):
             'connector': {'multipath': mock.sentinel.mp_ovo_connector}}
 
     def test_init(self):
-        self.mock_is_mp.assert_called_once_with(self.kwargs)
+        expected = self.kwargs.copy()
+        expected['attach_mode'] = 'rw'
+        self.mock_is_mp.assert_called_once_with(expected)
         self.assertEqual(self.conn.use_multipath, self.mock_is_mp.return_value)
         self.assertEqual(self.conn.scan_attempts, self.mock_default)
+        self.assertEqual(self.conn.attach_mode, 'rw')
         self.assertIsNone(self.conn._connector)
         self.assertEqual(self.vol, self.conn._volume)
         self.assertEqual(self.vol._ovo, self.conn._ovo.volume)
@@ -92,10 +95,13 @@ class TestConnection(base.BaseTest):
 
     def test_init_no_volume(self):
         self.mock_is_mp.reset_mock()
-        conn = objects.Connection(self.backend, **self.kwargs)
-        self.mock_is_mp.assert_called_once_with(self.kwargs)
+        kwargs = self.kwargs.copy()
+        kwargs['attach_mode'] = 'ro'
+        conn = objects.Connection(self.backend, **kwargs)
+        self.mock_is_mp.assert_called_once_with(kwargs)
         self.assertEqual(conn.use_multipath, self.mock_is_mp.return_value)
         self.assertEqual(conn.scan_attempts, self.mock_default)
+        self.assertEqual(conn.attach_mode, 'ro')
         self.assertIsNone(conn._connector)
 
     def test_connect(self):
@@ -184,9 +190,15 @@ class TestConnection(base.BaseTest):
         self.conn.conn_info = {}
         self.assertIsNone(self.conn._ovo.connection_info)
 
-    def test_conn_info_getter(self):
-        self.conn.conn_info = mock.sentinel.conn_info
-        self.assertEqual(mock.sentinel.conn_info, self.conn.conn_info)
+    def test_conn_info_getter_default_attach_mode(self):
+        self.conn.conn_info = {'data': {}}
+        self.assertEqual({'data': {'access_mode': 'rw'}}, self.conn.conn_info)
+
+    def test_conn_info_getter_ro(self):
+        self.conn._ovo.attach_mode = 'ro'
+        self.conn.conn_info = {'data': {'target_lun': 0}}
+        self.assertEqual({'data': {'target_lun': 0, 'access_mode': 'ro'}},
+                         self.conn.conn_info)
 
     def test_conn_info_getter_none(self):
         self.conn.conn_info = None
