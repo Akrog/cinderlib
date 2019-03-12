@@ -455,9 +455,9 @@ class Volume(NamedObject):
             self.backend.driver.delete_volume(self._ovo)
             self.persistence.delete_volume(self)
             self.backend._volume_removed(self)
-            self.status = 'deleted'
+            self._ovo.status = 'deleted'
         except Exception:
-            self.status = 'error_deleting'
+            self._ovo.status = 'error_deleting'
             self.save()
             self._raise_with_resource()
 
@@ -904,9 +904,9 @@ class Snapshot(NamedObject, LazyVolumeAttr):
         try:
             self.backend.driver.delete_snapshot(self._ovo)
             self.persistence.delete_snapshot(self)
-            self.status = 'deleted'
+            self._ovo.status = 'deleted'
         except Exception:
-            self.status = 'error_deleting'
+            self._ovo.status = 'error_deleting'
             self.save()
             self._raise_with_resource()
         if self._volume is not None and self._volume._snapshots is not None:

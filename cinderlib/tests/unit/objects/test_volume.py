@@ -151,14 +151,14 @@ class TestVolume(base.BaseTest):
         vol.delete()
         self.backend.driver.delete_volume.assert_called_once_with(vol._ovo)
         self.persistence.delete_volume.assert_called_once_with(vol)
-        self.assertEqual('deleted', vol.status)
+        self.assertEqual('deleted', vol._ovo.status)
 
     def test_delete_error_with_snaps(self):
         vol = objects.Volume(self.backend_name, size=10, status='available')
         snap = objects.Snapshot(vol)
         vol._snapshots.append(snap)
         self.assertRaises(exception.InvalidVolume, vol.delete)
-        self.assertEqual('available', vol.status)
+        self.assertEqual('available', vol._ovo.status)
 
     def test_delete_error(self):
         vol = objects.Volume(self.backend_name,
@@ -169,7 +169,7 @@ class TestVolume(base.BaseTest):
 
         self.assertEqual(vol, assert_context.exception.resource)
         self.backend.driver.delete_volume.assert_called_once_with(vol._ovo)
-        self.assertEqual('error_deleting', vol.status)
+        self.assertEqual('error_deleting', vol._ovo.status)
 
     def test_extend(self):
         vol = objects.Volume(self.backend_name, status='available', size=10)

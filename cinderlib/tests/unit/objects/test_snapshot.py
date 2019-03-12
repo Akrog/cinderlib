@@ -79,7 +79,7 @@ class TestSnapshot(base.BaseTest):
         self.persistence.delete_snapshot.assert_called_once_with(self.snap)
         self.assertEqual([], self.vol.snapshots)
         self.assertEqual([], self.vol._ovo.snapshots.objects)
-        self.assertEqual('deleted', self.snap.status)
+        self.assertEqual('deleted', self.snap._ovo.status)
 
     def test_delete_error(self):
         self.backend.driver.delete_snapshot.side_effect = exception.NotFound
@@ -91,7 +91,7 @@ class TestSnapshot(base.BaseTest):
         self.persistence.delete_snapshot.assert_not_called()
         self.assertEqual([self.snap], self.vol.snapshots)
         self.assertEqual([self.snap._ovo], self.vol._ovo.snapshots.objects)
-        self.assertEqual('error_deleting', self.snap.status)
+        self.assertEqual('error_deleting', self.snap._ovo.status)
 
     def test_create_volume(self):
         create_mock = self.backend.driver.create_volume_from_snapshot
