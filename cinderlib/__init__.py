@@ -40,6 +40,7 @@ dumps = serialization.dumps
 
 setup = cinderlib.setup
 Backend = cinderlib.Backend
+driver_options = cinderlib.Backend.driver_options
 
 get_connector_properties = objects.brick_connector.get_connector_properties
 list_supported_drivers = cinderlib.Backend.list_supported_drivers
